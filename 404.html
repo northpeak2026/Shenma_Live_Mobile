@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>神马直播</title>
+    <script>
+      (function () {
+        var projectBase = "/Shenma_Live_Mobile";
+        var requestedPath = window.location.pathname.indexOf(projectBase) === 0
+          ? window.location.pathname.slice(projectBase.length)
+          : window.location.pathname;
+        window.location.replace(projectBase + "/?p=" + encodeURIComponent(requestedPath + window.location.search + window.location.hash));
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
