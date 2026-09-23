@@ -2,8 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  // Relative assets keep the build portable for GitHub Pages project subpaths.
-  base: "./",
+  // Pages serves this project below its repository name; local Vite keeps root paths.
+  base: process.env.GITHUB_ACTIONS ? "/Shenma_Live_Mobile/" : "/",
   build: {
     outDir: "dist/client",
   },

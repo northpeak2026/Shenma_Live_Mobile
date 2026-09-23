@@ -6,7 +6,7 @@ import "./prototype.css";
 type TabKey = "home" | "matches" | "chat" | "profile";
 type Route = "home" | "preview" | "sports" | "sports-search" | "sports-filter" | "sports-detail" | "chat" | "chat-detail" | "profile" | "settings" | "login" | "noble-gift" | "following" | "recharge" | "tasks" | "activities" | "invite" | "messages" | "reward-history" | "watch-history" | "customer-service";
 const pagesProjectBase = "/Shenma_Live_Mobile";
-function assetUrl(file: string) { return `${window.location.pathname.startsWith(pagesProjectBase) ? pagesProjectBase : ""}/assets/${file}`; }
+function assetUrl(file: string) { return `${import.meta.env.BASE_URL}assets/${file}`; }
 const categories = ["推荐", "足球", "篮球", "英雄联盟", "直播回放"];
 const banners = [
   { image: "football-hero.png", title: "决胜瞬间", sub: "一射门，只为这一刻" },
