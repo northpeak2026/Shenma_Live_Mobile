@@ -11,3 +11,5 @@
 .group-panel:has(.group-input){display:flex;flex-direction:column;overflow:hidden}.group-panel:has(.group-input) .group-thread{flex:1;min-height:0;padding-bottom:12px;overflow-y:auto}.group-panel:has(.group-input) .group-input{flex:0 0 auto;padding-top:7px}
 .host-info .live-avatar{color:transparent;background-image:url("/assets/service-avatars-grid.png");background-repeat:no-repeat;background-position:0 0;background-size:300% 300%}
 .player-controls footer .on{margin-left:auto}
+.host-announcement-direct{display:block;margin:7px 0 0 auto;padding:4px 8px;border:1px solid #8a6ee4;border-radius:7px;color:#7055c7;background:#fff;font-size:10px;font-weight:800}.host-announcement-direct:active{color:#fff;background:#7b60d3}
+.rank-row>.vip{flex:0;font-size:9px;font-weight:400}

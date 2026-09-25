@@ -24,6 +24,7 @@ const groups = [
   { id: "tips", name: "投注技巧交流", last: "新人可以先看看群公告", time: "昨天", members: "1,204" },
 ];
 const rankingUsers = ["球王Leo", "阿豪", "Jason", "Coco", "绿茵小王子", "Mia", "阿森纳7号", "看球老炮", "小雨", "热血球迷"];
+const rankingVipLevels = [6, 5, 3, 8, 5, 3, 3, 6, 3, 5];
 const gifts = [{ icon: "🌷", name: "鲜花", price: 10 }, { icon: "🍺", name: "啤酒", price: 30 }, { icon: "⚽", name: "足球", price: 50 }, { icon: "🏆", name: "奖杯", price: 100 }, { icon: "🚀", name: "火箭", price: 500 }, { icon: "🏎️", name: "超级跑车", price: 1000 }];
 const formatNumber = (value: number) => new Intl.NumberFormat("zh-CN").format(value);
 
@@ -37,6 +38,33 @@ export function LiveRoomPage({ liveRoomId, conversation, onBack }: { liveRoomId:
   useEffect(() => { if (!welcome) return; const timer = window.setTimeout(() => setWelcome(""), 3000); return () => window.clearTimeout(timer); }, [welcome]);
   useEffect(() => { const timer = window.setInterval(() => setMessages((current) => [...current, { id: Date.now(), type: "announcement", content: "月满中秋，群雄再战！VIP群各路大神云集，实战经验赛事观点火热分享，私聊主播立即领取" }]), 30000); return () => window.clearInterval(timer); }, []);
   useEffect(() => { requestAnimationFrame(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }); }, [messages.length, tab]);
+  useEffect(() => {
+    if (tab !== "chat" || !chatRef.current) return;
+    const buttons = Array.from(chatRef.current.querySelectorAll<HTMLElement>(".host-announcement")).map((announcement) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "host-announcement-direct";
+      button.textContent = "私信主播";
+      button.addEventListener("click", () => setTab("direct"));
+      announcement.append(button);
+      return button;
+    });
+    return () => buttons.forEach((button) => button.remove());
+  }, [messages.length, tab]);
+  useEffect(() => {
+    if (tab !== "ranking") return;
+    const badges = Array.from(document.querySelectorAll<HTMLElement>(".rank-row")).flatMap((row, index) => {
+      const avatarNode = row.querySelector(".live-avatar");
+      if (!avatarNode) return [];
+      const badge = document.createElement("span");
+      const level = rankingVipLevels[index];
+      badge.className = `vip vip-${level}`;
+      badge.textContent = `VIP${level}`;
+      avatarNode.after(badge);
+      return [badge];
+    });
+    return () => badges.forEach((badge) => badge.remove());
+  }, [tab]);
   const toggleFullscreen = async () => { const node = playerRef.current; if (!node) return; try { if (document.fullscreenElement) await document.exitFullscreen(); else await node.requestFullscreen(); } catch { node.classList.toggle("simulated-fullscreen"); } };
   const sendChat = () => { const content = draft.trim(); if (!content) return; setMessages((current) => [...current, { id: Date.now(), senderType: "user", nickname: "我", vipLevel: 3, badge: "看球专家", content }]); setDraft(""); };
   const activeGroup = groups.find((group) => group.id === groupId);
