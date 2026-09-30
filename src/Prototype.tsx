@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeftIcon, ChatBubbleIcon, ChevronRightIcon, ClockIcon, GearIcon, HomeIcon, InfoCircledIcon, LightningBoltIcon, MagnifyingGlassIcon, PaperPlaneIcon, PersonIcon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons";
-import { Carousel, MobileScroll } from "./mobile";
+import { Carousel, KeyboardInput, MobileScroll, useKeyboard } from "./mobile";
 import { BottomTabIcon, type TabIconName } from "./tabIcons";
 import { LiveRoomPage } from "./live";
 import { HomePageV2, LiveCard, type Stream } from "./HomePageV2";
@@ -9,7 +9,8 @@ import { EventDetailPage, makeEventDetail, type EventDetailPayload } from "./eve
 import "./prototype.css";
 
 type TabKey = "home" | "matches" | "chat" | "profile";
-type Route = "home" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "noble-gift" | "following" | "recharge" | "tasks" | "activities" | "invite" | "messages" | "reward-history" | "watch-history" | "customer-service";
+type Route = "home" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "forgot-password" | "reset-password" | "noble-gift" | "following" | "recharge" | "tasks" | "activities" | "invite" | "messages" | "reward-history" | "watch-history" | "customer-service";
+type LoginMode = "code" | "password";
 const pagesProjectBase = "/Shenma_Live_Mobile";
 const appInfo = { name: "神马直播", version: "1.0.0" };
 function assetUrl(file: string) { return `${import.meta.env.BASE_URL}assets/${file}`; }
@@ -41,7 +42,7 @@ const previewEvents = [
 ];
 const userData = {
   isLoggedIn: true,
-  user: { nickname: "Harry", avatar: "", followingCount: 36 },
+  user: { nickname: "Harry", id: "SM20260925", avatar: "", followingCount: 36 },
   assets: { diamonds: 12580, coins: 26800 },
   following: [
     { nickname: "地瓜", followers: "12.8万", status: "live" },
@@ -70,7 +71,7 @@ const timeOptions = ["01:00", "03:00", "19:00", "20:30", "22:00", "23:30"];
 function makeSportsEvents(sport: Sport, status: EventStatus, count: number): SportsEvent[] { const teams = sport === "football" ? footballTeams : basketballTeams; const leagues = sport === "football" ? footballLeagueNames : basketballLeagueNames; const dates = status === "upcoming" ? scheduleDateOptions : status === "finished" ? resultDateOptions : [todayDateKey]; return Array.from({ length: count }, (_, index) => { const streamersForEvent = index % 6 === 0 ? streamerCatalog : index % 4 === 0 ? streamerCatalog.slice(0, 2) : index % 3 === 0 ? streamerCatalog.slice(0, 1) : []; const liveStage = sport === "football" ? ["上半场 10'", "上半场 38'", "中场", "下半场 63'"][index % 4] : ["第1节 08:32", "第2节 04:16", "半场", "第3节 06:20"][index % 4]; const isBasketball = sport === "basketball"; const quarterCount = status === "finished" ? 4 : status === "live" ? [1, 2, 2, 3][index % 4] : 0; const quarterScores = isBasketball && quarterCount ? Array.from({ length: quarterCount }, (_, quarter) => ({ quarter: quarter + 1, home: 20 + ((index + quarter * 3) % 12), away: 19 + ((index * 2 + quarter * 2) % 12) })) : undefined; const totalHome = quarterScores?.reduce((total, row) => total + row.home, 0); const totalAway = quarterScores?.reduce((total, row) => total + row.away, 0); const lowerHalf = status === "live" && liveStage.startsWith("下半场"); return { id: `${sport}-${status}-${index + 1}`, sport, league: leagues[index % leagues.length], date: dates[index % dates.length], startTime: timeOptions[index % timeOptions.length], status, stage: status === "live" ? liveStage : undefined, home: { name: teams[(index * 2) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalHome : (index % 4) + 1 }, away: { name: teams[(index * 2 + 1) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalAway : index % 3 }, halftimeScore: sport === "football" && (status === "finished" || lowerHalf) ? { home: 1, away: 0 } : undefined, corners: sport === "football" && status !== "upcoming" ? { home: 3 + (index % 3), away: 2 + (index % 3) } : undefined, quarterScores, isFeatured: index < 12, favorite: index % 7 === 0, hasAnimation: streamersForEvent.length === 0, streamers: streamersForEvent, detail: makeEventDetail(sport, status, index) }; }); }
 const sportsEvents: SportsEvent[] = ["football", "basketball"].flatMap((sport) => ([...makeSportsEvents(sport as Sport, "live", 12), ...makeSportsEvents(sport as Sport, "upcoming", 70), ...makeSportsEvents(sport as Sport, "finished", 70)]));
 const secondaryTitles: Record<Exclude<Route, "home" | "search" | "preview" | "live" | "profile" | "about" | "user-agreement" | "privacy-policy" | "chat" | "chat-detail" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team">, string> = {
-  download: "下载 App", settings: "设置", login: "登录 / 注册", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", activities: "活动中心", invite: "好友邀请", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史", "customer-service": "在线客服",
+  download: "下载 App", settings: "设置", login: "登录 / 注册", "forgot-password": "忘记密码", "reset-password": "设置新密码", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", activities: "活动中心", invite: "好友邀请", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史", "customer-service": "在线客服",
 };
 const commonFeatures: Array<{ id: "tasks" | "activities" | "invite" | "messages"; label: string }> = [{ id: "tasks", label: "任务中心" }, { id: "activities", label: "活动中心" }, { id: "invite", label: "好友邀请" }, { id: "messages", label: "消息中心" }];
 const moreFeatures: Array<{ id: "reward-history" | "watch-history" | "customer-service"; label: string }> = [{ id: "reward-history", label: "领取记录" }, { id: "watch-history", label: "观看历史" }, { id: "customer-service", label: "在线客服" }];
@@ -114,6 +115,9 @@ function routeFromLocation(): Route {
 
 export default function Prototype() {
   const [route, setRoute] = useState<Route>(() => routeFromLocation()); const [tab, setTab] = useState<TabKey>(() => { const initial = routeFromLocation(); return initial === "profile" ? "profile" : initial === "chat" || initial === "chat-detail" ? "chat" : initial === "sports" || initial === "sports-search" || initial === "sports-filter" || initial === "sports-filter-results" || initial === "sports-detail" || initial === "sports-team" ? "matches" : "home"; }); const [category, setCategory] = useState("推荐"); const [activeBanner, setActiveBanner] = useState(0); const [bannerRestart, setBannerRestart] = useState(0); const [day, setDay] = useState("today"); const [reminded, setReminded] = useState<number[]>([]); const [expanded, setExpanded] = useState<number[]>([]); const [sportsContext, setSportsContext] = useState<SportsFilterContext>(() => readSportsContextFromLocation()); const [sportsFavorites, setSportsFavorites] = useState<string[]>(() => sportsEvents.filter((event) => event.favorite).map((event) => event.id)); const [selectedLeagueIds, setSelectedLeagueIds] = useState<string[]>(() => new URLSearchParams(window.location.search).get("leagues")?.split(",").filter(Boolean) ?? []); const homeScroll = useRef(0); const sportsScroll = useRef(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginMode, setLoginMode] = useState<LoginMode>("code");
+  const keyboard = useKeyboard();
   useEffect(() => { const handleBack = () => { const next = routeFromLocation(); setRoute(next); setTab(next === "profile" ? "profile" : next === "chat" || next === "chat-detail" ? "chat" : next === "sports" || next === "sports-search" || next === "sports-filter" || next === "sports-filter-results" || next === "sports-detail" || next === "sports-team" ? "matches" : "home"); if (next === "sports-filter-results") { setSportsContext(readSportsContextFromLocation()); setSelectedLeagueIds(new URLSearchParams(window.location.search).get("leagues")?.split(",").filter(Boolean) ?? []); } if (next === "home" || next === "sports") requestAnimationFrame(() => { const node = document.querySelector<HTMLElement>(".mobile-scroll"); if (node) node.scrollTop = next === "home" ? homeScroll.current : sportsScroll.current; }); }; window.addEventListener("popstate", handleBack); return () => window.removeEventListener("popstate", handleBack); }, []);
   useEffect(() => { if (route !== "home" || tab !== "home") return; const timer = window.setTimeout(() => { setActiveBanner((value) => (value + 1) % banners.length); setBannerRestart((value) => value + 1); }, 5000); return () => window.clearTimeout(timer); }, [activeBanner, bannerRestart, route, tab]);
   const selectBanner = (index: number) => { setActiveBanner(index); setBannerRestart((value) => value + 1); };
@@ -130,6 +134,11 @@ export default function Prototype() {
   const openSportsDetail = (id: string) => { sportsScroll.current = document.querySelector<HTMLElement>(".mobile-scroll")?.scrollTop ?? 0; history.pushState({ route: "sports-detail", id }, "", appUrl(`/sports/event/${id}`)); setRoute("sports-detail"); setTab("matches"); };
   const openTeamDetail = (name: string, sport: Sport) => { sportsScroll.current = document.querySelector<HTMLElement>(".mobile-scroll")?.scrollTop ?? 0; history.pushState({ route: "sports-team", name, sport }, "", appUrl(`/sports/team/${encodeURIComponent(name)}?sport=${sport}`)); setRoute("sports-team"); setTab("matches"); };
   const openHomeSportsDetail = (id: string) => { homeScroll.current = document.querySelector<HTMLElement>(".mobile-scroll")?.scrollTop ?? 0; history.pushState({ route: "sports-detail", id, source: "home" }, "", appUrl(`/sports/event/${id}`)); setRoute("sports-detail"); setTab("home"); };
+  const openLogin = (mode: LoginMode = "code") => { keyboard.hide(); setLoginMode(mode); navigate("login"); };
+  const completeLogin = () => { keyboard.hide(); setIsLoggedIn(true); history.replaceState({ route: "profile" }, "", appUrl("/profile")); setRoute("profile"); setTab("profile"); };
+  const openForgotPassword = () => { keyboard.hide(); setLoginMode("password"); navigate("forgot-password"); };
+  const returnToPasswordLogin = () => { keyboard.hide(); setLoginMode("password"); history.replaceState({ route: "login" }, "", appUrl("/login")); setRoute("login"); };
+  const openResetPassword = () => { keyboard.hide(); navigate("reset-password"); };
   const chooseTab = (key: TabKey) => { if (key === "profile") { navigate("profile"); setTab("profile"); return; } if (key === "chat") { navigate("chat"); setTab("chat"); return; } if (key === "matches") { navigate("sports"); setTab("matches"); return; } if (route !== "home") navigate("home"); setTab(key); };
   const secondary = route !== "home" && route !== "search" && route !== "preview" && route !== "live" && route !== "profile" && route !== "about" && route !== "user-agreement" && route !== "privacy-policy" && route !== "chat" && route !== "chat-detail" && route !== "sports" && route !== "sports-search" && route !== "sports-filter" && route !== "sports-filter-results" && route !== "sports-detail" && route !== "sports-team";
   const conversationId = appPathname().split("/")[2];
@@ -138,6 +147,14 @@ export default function Prototype() {
   const detailEvent = sportsEvents.find((item) => item.id === eventId);
   const liveRoomId = appPathname().split("/")[2] || "live-1";
   const teamName = decodeURIComponent(appPathname().split("/")[3] || "球队"); const teamSport = new URLSearchParams(window.location.search).get("sport") === "basketball" ? "basketball" : "football";
+  const accountScreen = (() => {
+    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={navigate} onLogin={() => openLogin()} onLogout={() => setIsLoggedIn(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
+    if (route === "login") return <MobileScroll className="app-screen"><LoginPage mode={loginMode} onModeChange={setLoginMode} onBack={() => { keyboard.hide(); history.back(); }} onLogin={completeLogin} onForgotPassword={openForgotPassword} onOpenDocument={openAboutDocument} /></MobileScroll>;
+    if (route === "forgot-password") return <MobileScroll className="app-screen"><ForgotPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onBackToLogin={returnToPasswordLogin} onNext={openResetPassword} /></MobileScroll>;
+    if (route === "reset-password") return <MobileScroll className="app-screen"><ResetPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onComplete={returnToPasswordLogin} /></MobileScroll>;
+    return null;
+  })();
+  if (accountScreen) return accountScreen;
   return <>{route === "preview" ? <PreviewPage day={day} setDay={setDay} reminded={reminded} setReminded={setReminded} expanded={expanded} setExpanded={setExpanded} onBack={() => history.back()} /> : route === "live" ? <LiveRoomPage liveRoomId={liveRoomId} conversation={conversations[0]} onBack={() => history.back()} /> : route === "search" ? <MobileScroll className="app-screen"><LiveSearchPage onCancel={() => history.back()} onOpenLive={openLiveRoom} /></MobileScroll> : route === "about" ? <MobileScroll className="app-screen"><AboutPage onBack={() => history.back()} onOpenDocument={openAboutDocument} /></MobileScroll> : route === "user-agreement" || route === "privacy-policy" ? <MobileScroll className="app-screen"><LegalPlaceholderPage title={route === "user-agreement" ? "用户协议" : "隐私政策"} onBack={() => history.back()} /></MobileScroll> : route === "sports-detail" ? <MobileScroll className="app-screen"><EventDetailPage event={detailEvent} onBack={() => history.back()} /></MobileScroll> : route === "sports-team" ? <MobileScroll className="app-screen"><TeamDetailPage name={teamName} sport={teamSport} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onOpenEvent={openSportsDetail} onBack={() => history.back()} /></MobileScroll> : route === "sports-search" ? <MobileScroll className="app-screen"><SportsSearchPage favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onOpenEvent={openSportsDetail} onCancel={() => history.back()} /></MobileScroll> : route === "sports-filter" ? <MobileScroll className="app-screen"><SportsFilterPage context={sportsContext} favorites={sportsFavorites} selectedLeagueIds={selectedLeagueIds} setSelectedLeagueIds={setSelectedLeagueIds} onBack={() => history.back()} onConfirm={openSportsFilterResults} /></MobileScroll> : route === "sports-filter-results" ? <MobileScroll className="app-screen"><SportsFilterResultsPage context={sportsContext} selectedLeagueIds={selectedLeagueIds} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onBack={() => history.back()} onOpenEvent={openSportsDetail} /></MobileScroll> : route === "sports" ? <MobileScroll className="app-screen"><SportsPage onSearch={openSportsSubpage} onFilter={openSportsFilter} onOpenEvent={openSportsDetail} context={sportsContext} setContext={setSportsContext} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} /></MobileScroll> : route === "chat-detail" ? <ChatDetailPage conversation={conversation} conversationIndex={conversations.findIndex((item) => item.id === conversation.id)} onBack={() => history.back()} /> : route === "chat" ? <MobileScroll className="app-screen"><ChatListPage onOpenConversation={openConversation} /></MobileScroll> : route === "profile" ? <MobileScroll className="app-screen"><ProfilePageV2 onNavigate={navigate} /></MobileScroll> : secondary ? <MobileScroll className="app-screen">{route === "following" ? <FollowingPage onBack={() => history.back()} /> : <PlaceholderPage title={secondaryTitles[route]} onBack={() => history.back()} />}</MobileScroll> : <MobileScroll className="app-screen">{tab === "home" ? <HomePageV2 categories={categories} banners={banners} matches={matches} streams={streams} category={category} activeBanner={activeBanner} bannerRestart={bannerRestart} assetUrl={assetUrl} crest={crest} avatar={(name, index) => <Avatar name={name} index={index} />} setCategory={setCategory} selectBanner={selectBanner} openPreview={openPreview} onDownload={() => navigate("download")} onSearch={openLiveSearch} onOpenLive={openLiveRoom} onOpenEvent={openHomeSportsDetail} /> : <EmptyPage title={{ matches: "赛事", chat: "聊天", profile: "我的", home: "首页" }[tab]} />}</MobileScroll>}{(route === "home" || route === "profile" || route === "chat" || route === "sports") && <BottomTabs active={route === "profile" ? "profile" : route === "chat" ? "chat" : route === "sports" ? "matches" : tab} onSelect={chooseTab} />}</>;
 }
 function HomePage({ category, setCategory, activeBanner, bannerRestart, selectBanner, openPreview }: { category: string; setCategory: (value: string) => void; activeBanner: number; bannerRestart: number; selectBanner: (index: number) => void; openPreview: () => void }) { return <main className="home screen-content"><header className="home-header"><button className="brand" aria-label="神马直播首页"><img className="brand-logo" src={assetUrl("reference-icons/app-logo.png")} alt="" /><b>神马直播</b></button><button className="search" onClick={() => console.info("search click")}><MagnifyingGlassIcon /><span>搜索主播 / 直播</span></button><button className="game-entry" aria-label="自研游戏入口" onClick={() => console.info("game click")}><img className="game-entry-icon" src={assetUrl("reference-icons/game-entry-icon.png")} alt="" /></button></header><nav className="category-row" aria-label="直播分类">{categories.map((item) => <button key={item} className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item}</button>)}</nav><section className="hero" aria-label="推荐 Banner">{banners.map((banner, index) => <div className={`hero-slide ${index === activeBanner ? "active" : ""}`} key={banner.title}><img src={assetUrl(banner.image)} alt="足球直播活动" /><div className="hero-copy"><strong>{banner.title}</strong><span>{banner.sub}</span></div></div>)}<div className="banner-progress" aria-label="Banner 进度">{banners.map((banner, index) => <button key={banner.title} onClick={() => selectBanner(index)} className={index === activeBanner ? "progress active" : "progress"}><i key={index === activeBanner ? bannerRestart : "idle"} /></button>)}</div></section><section className="section hot-events"><h2>热门赛事</h2><Carousel className="hot-events-list" contentClassName="hot-events-track" ariaLabel="热门赛事">{matches.map((match) => <article className="match-card" key={match.home}><div className="match-meta"><span className={`league ${match.tone}`}>{match.league}</span><b className={match.state === "直播中" ? "live-text" : ""}>{match.state === "直播中" && <span className="mini-live" />}{match.state}</b></div><div className="clubs"><div>{crest(match.home)}<span>{match.home}</span></div><strong>{match.score}</strong><div>{crest(match.away)}<span>{match.away}</span></div></div></article>)}<button className="preview-card" onClick={openPreview}><span className="calendar-icon"><ClockIcon /></span><strong>直播预告</strong><small>今日 12 场 <ChevronRightIcon /></small></button></Carousel></section><section className="section live-section"><h2>正在直播</h2><div className="stream-grid">{streams.map((stream, index) => <article className="stream-card" key={stream.id}><div className="cover"><img src={assetUrl(stream.image)} alt="" /><span className={`anchor-tag tag-${index % 3}`}>{stream.tag}</span><span className="heat"><span className="heat-flame" aria-hidden="true">🔥</span>{stream.heat}</span></div><strong className="stream-title">{stream.title}</strong><div className="streamer"><span className="anchor"><Avatar name={stream.anchor} index={index} />{stream.anchor}</span></div></article>)}</div></section></main>; }
@@ -152,6 +169,99 @@ function ProfilePageV2({ onNavigate }: { onNavigate: (route: Route) => void }) {
     [{ id: "about", label: "关于我们", tone: "more-0" }],
   ];
   return <main className="profile-page screen-content"><header className="profile-top"><div className="profile-actions"><button className="profile-action" aria-label="消息中心" onClick={() => onNavigate("messages")}><ChatBubbleIcon /><i className="profile-badge" aria-hidden="true" /></button></div></header><section className="profile-user-card"><div className="profile-user">{userData.isLoggedIn ? <Avatar name={userData.user.nickname} index={1} /> : <span className="profile-logo">马</span>}<button className="profile-name" onClick={() => !userData.isLoggedIn && onNavigate("login")}>{userData.isLoggedIn ? userData.user.nickname : "登录 / 注册"}{!userData.isLoggedIn && <ChevronRightIcon />}</button></div><button className="following-total" onClick={() => onNavigate("following")}><strong>{formatNumber(userData.user.followingCount)}</strong><span>关注</span><ChevronRightIcon /></button></section><section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{formatNumber(userData.assets.diamonds)}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{formatNumber(userData.assets.coins)}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section><section className="profile-feature-groups">{groups.map((group, groupIndex) => <div className="feature-group" key={groupIndex}>{group.map((feature) => <button className="feature-row" key={feature.id} onClick={() => onNavigate(feature.id)}><span className={`more-icon ${feature.tone}`}>{feature.id === "about" ? <InfoCircledIcon /> : <ClockIcon />}</span><b>{feature.label}</b><ChevronRightIcon /></button>)}</div>)}</section></main>;
+}
+
+function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLoggedIn: boolean; onNavigate: (route: Route) => void; onLogin: () => void; onLogout: () => void }) {
+  const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
+    [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
+    [{ id: "activities", label: "活动中心", tone: "more-2" }, { id: "invite", label: "好友邀请", tone: "more-0" }],
+    [{ id: "customer-service", label: "在线客服", tone: "more-1" }],
+    [{ id: "watch-history", label: "观看历史", tone: "more-2" }],
+    [{ id: "about", label: "关于我们", tone: "more-0" }],
+  ];
+  return <main className="profile-page screen-content">
+    <header className="profile-top"><div className="profile-actions"><button className="profile-action" aria-label="消息中心" onClick={() => onNavigate("messages")}><ChatBubbleIcon /><i className="profile-badge" aria-hidden="true" /></button></div></header>
+    <section className={`profile-user-card ${isLoggedIn ? "" : "logged-out"}`}>
+      <div className="profile-user">
+        {isLoggedIn ? <Avatar name={userData.user.nickname} index={1} /> : <button className="profile-avatar-placeholder" aria-label="登录或注册" onClick={onLogin}><PersonIcon /></button>}
+        {isLoggedIn ? <div className="profile-identity"><strong>{userData.user.nickname}</strong><small>ID：{userData.user.id}</small></div> : <button className="profile-name" onClick={onLogin}>登录 / 注册<ChevronRightIcon /></button>}
+      </div>
+      <button className="following-total" onClick={() => onNavigate("following")}><strong>{isLoggedIn ? formatNumber(userData.user.followingCount) : "0"}</strong><span>关注</span><ChevronRightIcon /></button>
+    </section>
+    <section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{isLoggedIn ? formatNumber(userData.assets.diamonds) : "0"}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{isLoggedIn ? formatNumber(userData.assets.coins) : "0"}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section>
+    <section className="profile-feature-groups">{groups.map((group, groupIndex) => <div className="feature-group" key={groupIndex}>{group.map((feature) => <button className="feature-row" key={feature.id} onClick={() => onNavigate(feature.id)}><span className={`more-icon ${feature.tone}`}>{feature.id === "about" ? <InfoCircledIcon /> : <ClockIcon />}</span><b>{feature.label}</b><ChevronRightIcon /></button>)}</div>)}</section>
+    {isLoggedIn && <button className="profile-logout" onClick={onLogout}>退出登录</button>}
+  </main>;
+}
+
+function useVerificationCountdown() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const timer = window.setTimeout(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [seconds]);
+  return { seconds, start: () => setSeconds(60) };
+}
+
+function AuthHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return <header className="sub-header auth-header"><button className="back-button" aria-label="返回" onClick={onBack}><ArrowLeftIcon /></button><h1>{title}</h1></header>;
+}
+
+function PhoneField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const keyboard = useKeyboard();
+  return <label className="auth-field"><span className="auth-prefix">+86</span><KeyboardInput value={value} onChange={(event) => onChange(event.target.value.replace(/\D/g, "").slice(0, 11))} onBlur={() => keyboard.hide()} inputMode="numeric" autoComplete="tel" placeholder="请输入手机号" aria-label="手机号" /></label>;
+}
+
+function LoginPage({ mode, onModeChange, onBack, onLogin, onForgotPassword, onOpenDocument }: { mode: LoginMode; onModeChange: (mode: LoginMode) => void; onBack: () => void; onLogin: () => void; onForgotPassword: () => void; onOpenDocument: (route: "user-agreement" | "privacy-policy") => void }) {
+  const keyboard = useKeyboard();
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const countdown = useVerificationCountdown();
+  const credential = mode === "code" ? code : password;
+  const canSubmit = Boolean(phone.trim() && credential.trim() && agreed);
+  return <main className="auth-page screen-content">
+    <AuthHeader title="登录 / 注册" onBack={onBack} />
+    <section className="auth-brand"><img src={assetUrl("reference-icons/app-logo.png")} alt="神马直播" /><h2>欢迎来到神马直播</h2><p>精彩赛事，尽在掌握</p></section>
+    <nav className="auth-tabs" aria-label="登录方式"><button className={mode === "code" ? "active" : ""} onClick={() => onModeChange("code")}>验证码登录</button><button className={mode === "password" ? "active" : ""} onClick={() => onModeChange("password")}>密码登录</button></nav>
+    <section className="auth-card">
+      <PhoneField value={phone} onChange={setPhone} />
+      <label className="auth-field"><KeyboardInput value={credential} onChange={(event) => mode === "code" ? setCode(event.target.value.replace(/\D/g, "").slice(0, 6)) : setPassword(event.target.value)} onBlur={() => keyboard.hide()} type={mode === "password" ? "password" : "text"} inputMode={mode === "code" ? "numeric" : "text"} autoComplete={mode === "code" ? "one-time-code" : "current-password"} placeholder={mode === "code" ? "请输入验证码" : "请输入密码"} aria-label={mode === "code" ? "验证码" : "密码"} />{mode === "code" && <button type="button" className="auth-inline-action" disabled={!phone.trim() || countdown.seconds > 0} onClick={countdown.start}>{countdown.seconds > 0 ? `重新获取 ${countdown.seconds}s` : "获取验证码"}</button>}</label>
+      {mode === "password" && <button className="forgot-link" onClick={onForgotPassword}>忘记密码</button>}
+      <p className="auth-note">未注册的手机号将自动创建神马直播平台账号</p>
+      <label className="auth-agreement"><input type="checkbox" checked={agreed} onChange={(event) => setAgreed(event.target.checked)} /><span>我已阅读并接受 <button type="button" onClick={() => onOpenDocument("user-agreement")}>直播协议</button> 和 <button type="button" onClick={() => onOpenDocument("privacy-policy")}>隐私政策</button></span></label>
+      <button className="auth-primary" disabled={!canSubmit} onClick={onLogin}>登录</button>
+    </section>
+  </main>;
+}
+
+function ForgotPasswordPage({ onBack, onBackToLogin, onNext }: { onBack: () => void; onBackToLogin: () => void; onNext: () => void }) {
+  const keyboard = useKeyboard();
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const countdown = useVerificationCountdown();
+  const canContinue = Boolean(phone.trim() && code.trim());
+  return <main className="auth-page screen-content"><AuthHeader title="忘记密码" onBack={onBack} /><section className="auth-step-copy"><span>1 / 2</span><h2>验证手机号</h2><p>通过短信验证码确认账号归属</p></section><section className="auth-card"><PhoneField value={phone} onChange={setPhone} /><label className="auth-field"><KeyboardInput value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} onBlur={() => keyboard.hide()} inputMode="numeric" autoComplete="one-time-code" placeholder="请输入验证码" aria-label="验证码" /><button type="button" className="auth-inline-action" disabled={!phone.trim() || countdown.seconds > 0} onClick={countdown.start}>{countdown.seconds > 0 ? `重新获取 ${countdown.seconds}s` : "获取验证码"}</button></label><button className="auth-primary" disabled={!canContinue} onClick={onNext}>下一步</button><button className="auth-secondary" onClick={onBackToLogin}>返回登录</button></section></main>;
+}
+
+function ResetPasswordPage({ onBack, onComplete }: { onBack: () => void; onComplete: () => void }) {
+  const keyboard = useKeyboard();
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  useEffect(() => {
+    if (!success) return;
+    const timer = window.setTimeout(onComplete, 1200);
+    return () => window.clearTimeout(timer);
+  }, [onComplete, success]);
+  const submit = () => {
+    if (password !== confirmation) { setError("两次输入的密码不一致，请重新输入"); return; }
+    keyboard.hide(); setError(""); setSuccess(true);
+  };
+  return <main className="auth-page screen-content"><AuthHeader title="设置新密码" onBack={onBack} /><section className="auth-step-copy"><span>2 / 2</span><h2>设置新密码</h2><p>请设置并再次确认新的登录密码</p></section><section className="auth-card"><label className="auth-field"><KeyboardInput value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} onBlur={() => keyboard.hide()} type="password" autoComplete="new-password" placeholder="请输入新密码" aria-label="新密码" /></label><label className={`auth-field ${error ? "error" : ""}`}><KeyboardInput value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(""); }} onBlur={() => keyboard.hide()} type="password" autoComplete="new-password" placeholder="请再次输入新密码" aria-label="确认新密码" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="auth-primary" disabled={!password.trim() || !confirmation.trim() || success} onClick={submit}>下一步</button></section>{success && <div className="auth-toast" role="status">密码修改完成</div>}</main>;
 }
 
 function ProfilePage({ onNavigate }: { onNavigate: (route: Route) => void }) {
