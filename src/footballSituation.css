@@ -1,0 +1,22 @@
+.football-situation-overview{--football-home:#ef6171;--football-away:#4998f5;margin-bottom:13px;color:#354962}
+.football-situation-overview section+section{margin-top:10px;padding-top:12px;border-top:1px solid #e5ecf4}
+.football-momentum{display:grid;grid-template-columns:28px minmax(0,1fr);gap:5px;min-width:0}
+.football-momentum-teams{display:grid;grid-template-rows:1fr 1fr;box-sizing:border-box;padding-top:25px}
+.football-momentum-teams>span{display:grid;place-items:center;min-width:0}
+.football-momentum-teams .detail-crest{display:block;width:24px;height:24px;object-fit:contain}
+.football-momentum-plot{position:relative;width:100%;min-width:0}.football-momentum-plot>canvas{display:block;width:100%;height:100%}
+.football-momentum-axis{position:absolute;top:0;right:0;left:0;height:22px;pointer-events:none}
+.football-momentum-axis>span{position:absolute;top:0;display:flex;align-items:center;justify-content:center;flex-direction:column;height:22px;transform:translateX(-50%);color:#899bb3;font-size:9px;line-height:11px;white-space:nowrap}
+.football-momentum-marker{position:absolute;display:grid;place-items:center;width:10px;height:10px;transform:translateX(-50%)}
+.football-momentum-marker .match-event-icon{width:9px;height:9px;flex-basis:9px;border-radius:2px}.football-momentum-marker .match-event-icon svg{width:6px;height:6px}
+.football-ring-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.football-ring-metric{display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr);align-items:center;gap:2px;min-width:0}
+.football-ring-metric>b{font-size:11px;font-weight:650;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap}
+.football-ring-metric>div{position:relative;width:36px;height:36px}.football-ring-metric canvas{display:block;width:100%;height:100%}
+.football-ring-metric>div>span{position:absolute;inset:0;display:grid;place-items:center;color:#899bb3;font-size:9px;white-space:nowrap}
+.football-secondary-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr);align-items:center;gap:10px;margin-top:13px}
+.football-bar-metrics{display:grid;gap:10px;min-width:0}.football-bar-metric header{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;font-size:11px;line-height:14px}.football-bar-metric header span{color:#899bb3;font-size:9px;white-space:nowrap}.football-bar-metric header b{font-variant-numeric:tabular-nums;font-weight:650}
+.football-metric-track{position:relative;overflow:hidden;height:4px;border-radius:5px;background:#e3e9f1}.football-metric-track i{position:absolute;top:0;bottom:0;left:0;border-radius:5px;background:#a8b4c5}.football-metric-track .metric-fill-home{background:var(--football-home)}.football-metric-track .metric-fill-away{right:0;left:auto;background:var(--football-away)}
+.football-count-side{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:5px;min-width:0}.football-count-side>div{display:flex;align-items:center;flex-direction:column;gap:8px;min-width:0}.football-count-side b{font-size:11px;line-height:14px;font-variant-numeric:tabular-nums}.football-count-side .match-event-icon{width:14px;height:14px;flex-basis:14px;border-radius:3px}.football-count-side .match-event-icon svg{width:10px;height:10px}
+.football-situation-overview .event-detail-empty{min-height:95px;color:#8a9ab3;font-size:11px;text-align:center}
+@media(max-width:375px){.football-ring-metric{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:1px}.football-ring-metric>div{width:34px;height:34px}.football-ring-metric>b{font-size:10px}.football-ring-metrics{gap:3px}.football-secondary-metrics{gap:8px}.football-count-side{gap:4px}}
