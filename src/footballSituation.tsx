@@ -6,7 +6,7 @@ import "./footballSituation.css";
 type ChartEvent = MomentumEventSource;
 const colours = { home: "#ef6171", away: "#4998f5", neutral: "#a8b4c5", track: "#e3e9f1" };
 
-function useCanvas(draw: (context: CanvasRenderingContext2D, width: number, height: number) => void) {
+export function useCanvas(draw: (context: CanvasRenderingContext2D, width: number, height: number) => void) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -116,9 +116,9 @@ function RingMetric({ label, home, away, percentage = false }: { label: string; 
   return <div className="football-ring-metric" data-side={side} data-ratio={ratio} aria-label={`${label} 主队${format(home)} 客队${format(away)}`}><b>{format(home)}</b><div><canvas ref={canvas} aria-hidden="true" /><span>{label}</span></div><b>{format(away)}</b></div>;
 }
 
-function BarMetric({ label, home, away }: { label: string; home: number; away: number }) {
+export function BarMetric({ label, home, away, percentage = false }: { label: string; home: number; away: number; percentage?: boolean }) {
   const { side, ratio } = comparisonRatio(home, away);
-  return <div className="football-bar-metric"><header><b>{home}</b><span>{label}</span><b>{away}</b></header><div className="football-metric-track"><i className={`metric-fill-${side}`} style={{ width: `${ratio * 100}%` }} /></div></div>;
+  return <div className="football-bar-metric"><header><b>{home}{percentage ? "%" : ""}</b><span>{label}</span><b>{away}{percentage ? "%" : ""}</b></header><div className="football-metric-track"><i className={`metric-fill-${side}`} style={{ width: `${ratio * 100}%` }} /></div></div>;
 }
 
 function KeyStatistics({ stats, renderIcon }: { stats: MatchStatistics; renderIcon: (type: string) => ReactNode }) {

@@ -1,7 +1,9 @@
 import { ArrowLeftIcon, CircleIcon, ClockIcon, CrossCircledIcon, ExclamationTriangleIcon, InfoCircledIcon, LightningBoltIcon, PlayIcon, UpdateIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FootballSituationOverview } from "./footballSituation";
 import type { FootballSituationData } from "./footballSituationData";
+import { basketballSituationFor, basketballQuarterLabel, basketballClockValue, basketballScoringEventTypes, type BasketballLiveEvent, type BasketballSituationData } from "./basketballSituationData";
+import { BasketballDifferenceChart, BasketballPeriodScoreTable, BasketballPeriodMetrics } from "./basketballSituation";
 import "./eventDetail.css";
 import "./eventDetailRefine.css";
 
@@ -9,7 +11,7 @@ export type DetailStat = { home: number; away: number };
 type FootballPlayer = { number: number; name: string; position: "门将" | "后卫" | "中场" | "前锋"; value: string; substitutedAt?: string; seed: number };
 type BasketballPlayer = { number: number; name: string; points: number; rebounds: number; assists: number; made: number; attempted: number; seed: number };
 type FootballTeamLineup = { formation: string; coach: { name: string; seed: number }; starters: FootballPlayer[]; substitutes: FootballPlayer[] };
-export type EventDetailPayload = { statistics?: Record<string, DetailStat>; footballSituation?: FootballSituationData; footballLineup?: { home: FootballTeamLineup; away: FootballTeamLineup }; basketballLineup?: { home: BasketballPlayer[]; away: BasketballPlayer[] } };
+export type EventDetailPayload = { statistics?: Record<string, DetailStat>; footballSituation?: FootballSituationData; basketballSituation?: BasketballSituationData; footballLineup?: { home: FootballTeamLineup; away: FootballTeamLineup }; basketballLineup?: { home: BasketballPlayer[]; away: BasketballPlayer[] } };
 type QuarterScore = { quarter: number; home: number; away: number };
 export type EventDetailEvent = { id: string; sport: "football" | "basketball"; league: string; date: string; startTime: string; status: "live" | "upcoming" | "finished"; stage?: string; home: { name: string; score?: number }; away: { name: string; score?: number }; halftimeScore?: { home: number; away: number } | null; quarterScores?: QuarterScore[]; detail?: EventDetailPayload };
 
@@ -52,9 +54,7 @@ function scoreOf(event: EventDetailEvent) { return event.status === "upcoming" ?
 
 function ViewModeSwitcher({ mode, setMode }: { mode: "animation" | "scoreboard"; setMode: (mode: "animation" | "scoreboard") => void }) { return <div className="event-view-switcher"><button className={mode === "animation" ? "active" : ""} onClick={() => setMode("animation")}>动画</button><button className={mode === "scoreboard" ? "active" : ""} onClick={() => setMode("scoreboard")}>比分</button></div>; }
 function halftimeScoreOf(event: EventDetailEvent) { return event.sport === "football" && event.status !== "upcoming" ? event.halftimeScore : undefined; }
-function periodLabel(quarter: number) { return quarter <= 4 ? `Q${quarter}` : quarter === 5 ? "OT" : `OT${quarter - 4}`; }
-function BasketballScoreTable({ event }: { event: EventDetailEvent }) { const actualPeriods = event.quarterScores ?? []; const finalQuarter = Math.max(4, ...actualPeriods.map((item) => item.quarter)); const periods = Array.from({ length: finalQuarter }, (_, index) => index + 1); const latestLiveQuarter = event.status === "live" ? actualPeriods.reduce((latest, item) => Math.max(latest, item.quarter), 0) : 0; const valueFor = (side: "home" | "away", quarter: number) => actualPeriods.find((item) => item.quarter === quarter)?.[side] ?? "-"; const totalFor = (side: "home" | "away") => event.status === "upcoming" ? "-" : event[side].score ?? "-"; const columns = { gridTemplateColumns: `64px repeat(${periods.length + 1}, 29px)` }; return <div className="detail-basketball-score-table" aria-label="各节比分"><div className="detail-basketball-score-row detail-basketball-score-head" style={columns}><span /><>{periods.map((quarter) => <b key={quarter} className={quarter === latestLiveQuarter ? "current-period" : ""}>{periodLabel(quarter)}</b>)}</><b className="total-column">总</b></div>{(["home", "away"] as const).map((side) => <div className="detail-basketball-score-row" style={columns} key={side}><strong>{event[side].name}</strong><>{periods.map((quarter) => { const value = valueFor(side, quarter); return <span key={quarter} className={value === "-" ? "not-started" : quarter === latestLiveQuarter ? "current-period" : ""}>{value}</span>; })}</><b className="total-column">{totalFor(side)}</b></div>)}</div>; }
-function Scoreboard({ event }: { event: EventDetailEvent }) { const halftimeScore = halftimeScoreOf(event); const status = scoreboardStatus(event); return <div className={`event-scoreboard ${event.sport === "basketball" ? "detail-basketball-scoreboard" : "football-scoreboard"}`}><span className="event-league-name">{event.league}</span><span className="event-start-datetime">{formatEventDateTime(event.date, event.startTime)}</span><b className={`event-score-status ${event.status === "live" ? "live" : ""}`}>{status}</b><div className="event-score-teams"><div><TeamCrest name={event.home.name} /><strong>{event.home.name}</strong></div><div className="scoreboard-score"><em>{scoreOf(event)}</em>{halftimeScore && <small>半场 {halftimeScore.home} : {halftimeScore.away}</small>}</div><div><TeamCrest name={event.away.name} /><strong>{event.away.name}</strong></div></div>{event.sport === "basketball" && <BasketballScoreTable event={event} />}</div>; }
+function Scoreboard({ event }: { event: EventDetailEvent }) { const halftimeScore = halftimeScoreOf(event); const status = scoreboardStatus(event); return <div className={`event-scoreboard ${event.sport === "basketball" ? "detail-basketball-scoreboard" : "football-scoreboard"}`}><span className="event-league-name">{event.league}</span><span className="event-start-datetime">{formatEventDateTime(event.date, event.startTime)}</span><b className={`event-score-status ${event.status === "live" ? "live" : ""}`}>{status}</b><div className="event-score-teams"><div><TeamCrest name={event.home.name} /><strong>{event.home.name}</strong></div><div className="scoreboard-score"><em>{scoreOf(event)}</em>{halftimeScore && <small>半场 {halftimeScore.home} : {halftimeScore.away}</small>}</div><div><TeamCrest name={event.away.name} /><strong>{event.away.name}</strong></div></div></div>; }
 function EventVisualHeader({ event, onBack }: { event: EventDetailEvent; onBack: () => void }) { const [mode, setMode] = useState<"animation" | "scoreboard">("animation"); return <header className={`event-visual event-visual-${event.sport} ${mode === "scoreboard" ? "is-scoreboard" : ""}`}><img src={asset(event.sport === "football" ? "event-football-pitch.svg" : "event-basketball-court.svg")} alt={event.sport === "football" ? "足球场景" : "篮球场景"} /><div className="event-visual-shade" /><button className="event-visual-back" aria-label="返回" onClick={onBack}><ArrowLeftIcon /></button><ViewModeSwitcher mode={mode} setMode={setMode} />{mode === "scoreboard" && <Scoreboard event={event} />}</header>; }
 
 function StatisticRow({ label, value, isPercentage }: { label: string; value: DetailStat; isPercentage?: boolean }) { const max = isPercentage ? 100 : Math.max(value.home, value.away, 1); const homeWidth = value.home / max * 50; const awayWidth = value.away / max * 50; const homeLead = value.home > value.away; const awayLead = value.away > value.home; const format = (number: number) => isPercentage ? `${number}%` : number; return <article className="statistic-row"><div className="statistic-copy"><b>{format(value.home)}</b><span>{label}</span><b>{format(value.away)}</b></div><div className="statistic-bars"><i className={homeLead ? "lead statistic-home-bar" : "statistic-home-bar"} style={{ width: `${homeWidth}%` }} /><i className={awayLead ? "lead statistic-away-bar" : "statistic-away-bar"} style={{ width: `${awayWidth}%` }} /></div></article>; }
@@ -87,80 +87,32 @@ function KeyEventTimeline({ event, events }: { event: EventDetailEvent; events: 
 function TextLiveTimeline({ event: _event, events }: { event: EventDetailEvent; events: MatchEvent[] }) { return <section className="text-live"><div className="text-live-list">{events.map((item) => <article className={`text-live-row event-${item.teamType} ${item.type === "stage" ? "stage" : ""}`} key={item.id}><MatchEventIcon type={item.type} /><time>{item.minute}</time><div>{item.type === "goal" && <FootballGoalHeadline item={item} />}<span>{item.teamName ? `${item.teamName} ${item.description}` : item.description}</span><TeamOwnershipTag teamType={item.teamType} /></div></article>)}</div><EventLegend /></section>; }
 function FootballMatchTimelinePanel({ event }: { event: EventDetailEvent }) { const [view, setView] = useState<"key" | "text">("key"); const events = matchEventsFor(event); return <section className="match-timeline-panel"><FootballSituationOverview event={event} events={events} renderIcon={(type) => <MatchEventIcon type={type as MatchEventType} />} renderEmpty={(text) => <EmptyDetailState text={text} />} renderTeamLogo={(name) => <TeamCrest name={name} />} /><nav className="match-timeline-tabs" aria-label="赛况内容"><button className={view === "key" ? "active" : ""} onClick={() => setView("key")}>关键事件</button><button className={view === "text" ? "active" : ""} onClick={() => setView("text")}>文字直播</button></nav>{view === "key" ? <KeyEventTimeline event={event} events={events} /> : <TextLiveTimeline event={event} events={events} />}</section>; }
 
-type BasketballLiveEvent = {
-  id: string;
-  quarter: number;
-  quarterLabel: string;
-  clock: string;
-  homeScore: number;
-  awayScore: number;
-  teamType: "home" | "away" | "neutral";
-  teamName?: string;
-  eventType: string;
-  description: string;
-};
-
-const basketballQuarterLabel = (quarter: number) => quarter <= 4 ? `第${["一", "二", "三", "四"][quarter - 1]}节` : `加时${quarter - 4}`;
-const basketballClockValue = (clock: string) => { const [minutes, seconds] = clock.split(":").map(Number); return minutes * 60 + seconds; };
-const basketballQuarterEnds = [[28, 24], [53, 48], [76, 68], [98, 91]];
-
-function basketballLiveEventsFor(event: EventDetailEvent): BasketballLiveEvent[] {
-  const maxQuarter = event.status === "upcoming" ? 0 : event.status === "finished" ? 4 : Math.max(1, ...(event.quarterScores ?? []).map((item) => item.quarter));
-  const home = event.home.name;
-  const away = event.away.name;
-  const events: BasketballLiveEvent[] = [];
-  for (let quarter = 1; quarter <= maxQuarter; quarter += 1) {
-    const [endHome, endAway] = basketballQuarterEnds[quarter - 1] ?? [98 + (quarter - 4) * 10, 91 + (quarter - 4) * 8];
-    const [startHome, startAway] = quarter === 1 ? [0, 0] : basketballQuarterEnds[quarter - 2] ?? [endHome - 10, endAway - 8];
-    const label = basketballQuarterLabel(quarter);
-    const score = (homeOffset: number, awayOffset: number) => ({ homeScore: Math.min(endHome, startHome + homeOffset), awayScore: Math.min(endAway, startAway + awayOffset) });
-    const entry = (clock: string, teamType: BasketballLiveEvent["teamType"], eventType: string, description: string, homeOffset: number, awayOffset: number) => events.push({ id: `${event.id}-q${quarter}-${clock}-${events.length}`, quarter, quarterLabel: label, clock, teamType, eventType, description, teamName: teamType === "home" ? home : teamType === "away" ? away : undefined, ...score(homeOffset, awayOffset) });
-    entry("12:00", "neutral", quarter === 1 ? "GAME_START" : "QUARTER_START", quarter === 1 ? "比赛开始" : `${label}开始`, 0, 0);
-    entry("11:38", "home", "POSSESSION", `${home} 控球`, 0, 0);
-    entry("11:16", "home", "TWO_POINT_MISSED", `${home} 两分出手，MISS`, 0, 0);
-    entry("10:54", "away", "DEFENSIVE_REBOUND", `${away} 获得防守篮板`, 0, 0);
-    entry("10:31", "away", "THREE_POINT_MADE", `漂亮！${away} 三分远投应声入篮`, 0, 3);
-    entry("09:58", "home", "ASSIST", `${home} 助攻，内线配合完成`, 2, 3);
-    entry("09:31", "away", "TURNOVER", `${away} 出现失误`, 2, 3);
-    entry("08:47", "home", "STEAL", `${home} 抢断成功，发动快攻`, 4, 3);
-    entry("08:18", "home", "FREE_THROW_MADE", `${home} 罚球命中`, 5, 3);
-    entry("07:42", "away", "TWO_POINT_MADE", `${away} 两分命中`, 5, 5);
-    entry("06:58", "neutral", "TIMEOUT", "比赛进入官方暂停", 5, 5);
-    entry("06:31", "home", "SUBSTITUTION", `${home} 换人`, 7, 5);
-    entry("05:54", "away", "BLOCK", `${away} 送出盖帽`, 7, 5);
-    entry("05:08", "home", "OFFENSIVE_REBOUND", `${home} 获得进攻篮板`, 9, 5);
-    entry("04:32", "away", "FOUL", `${away} 防守犯规`, 9, 7);
-    entry("03:47", "home", "THREE_POINT_MISSED", `${home} 三分出手，MISS`, 9, 7);
-    entry("02:58", "away", "FREE_THROW_MISSED", `${away} 罚球未中`, 11, 8);
-    entry("02:14", "home", "THREE_POINT_MADE", `漂亮！${home} 三分远投应声入篮`, 14, 8);
-    entry("01:36", "away", "POSSESSION", `${away} 控球`, 14, 11);
-    entry("00:52", "home", "TWO_POINT_MADE", `${home} 突破上篮命中`, 18, 11);
-    entry("00:25", "away", "TWO_POINT_MADE", `${away} 两分命中`, 18, 14);
-    entry("00:00", "neutral", quarter === maxQuarter && event.status === "finished" ? "GAME_END" : "QUARTER_END", quarter === maxQuarter && event.status === "finished" ? "主裁判一声哨响，全场比赛结束" : `${label}结束`, endHome - startHome, endAway - startAway);
-  }
-  return events;
-}
-
 function BasketballSituationEmpty({ text }: { text: string }) { return <div className="basketball-situation-empty"><EmptyDetailState text={text} /></div>; }
-function BasketballSituationModule({ title, text }: { title: string; text: string }) { return <section className="basketball-situation-module"><h3>{title}</h3><BasketballSituationEmpty text={text} /></section>; }
-const basketballScoringEventTypes = new Set(["TWO_POINT_MADE", "THREE_POINT_MADE", "FREE_THROW_MADE"]);
 function BasketballLiveScore({ item }: { item: BasketballLiveEvent }) { const isScoring = basketballScoringEventTypes.has(item.eventType); return <b className="basketball-live-score"><span className={isScoring && item.teamType === "home" ? "scored" : ""}>{item.homeScore}</span><i> - </i><span className={isScoring && item.teamType === "away" ? "scored" : ""}>{item.awayScore}</span></b>; }
 function BasketballLiveList({ events }: { events: BasketballLiveEvent[] }) { return <div className="basketball-live-list">{events.sort((left, right) => basketballClockValue(left.clock) - basketballClockValue(right.clock)).map((item) => { const isScoring = basketballScoringEventTypes.has(item.eventType); return <article className={`basketball-live-row event-${item.teamType} ${isScoring ? "is-scoring" : "is-secondary"}`} key={item.id}><i className="basketball-live-dot" aria-hidden="true" /><div className="basketball-live-card"><header><time>{item.quarterLabel} {item.clock}</time><BasketballLiveScore item={item} /></header><footer><p>{item.description}</p><TeamOwnershipTag teamType={item.teamType} /></footer></div></article>; })}</div>; }
 function BasketballSituationPanel({ event }: { event: EventDetailEvent }) {
-  const allEvents = basketballLiveEventsFor(event);
-  const periods = Array.from(new Set(allEvents.map((item) => item.quarter))).sort((left, right) => left - right);
-  const currentPeriod = periods.at(-1) ?? 0;
+  const data = basketballSituationFor(event);
+  const allEvents = data.events;
+  const periods = data.quarterScores.map((row) => row.quarter);
+  const currentPeriod = data.currentQuarter;
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
+  useEffect(() => setSelectedPeriod(currentPeriod), [currentPeriod]);
+  const [view, setView] = useState<"text" | "statistics">("text");
   const visibleEvents = allEvents.filter((item) => item.quarter === selectedPeriod);
   return <section className="basketball-situation-panel">
-    <BasketballSituationModule title="比分走势图" text="暂无比分走势数据" />
-    <BasketballSituationModule title="小节数据" text="暂无小节数据" />
-    <section className="basketball-situation-module basketball-text-live"><h3>文字直播</h3>
-      {periods.length ? <><nav className="basketball-period-tabs" aria-label="文字直播小节">{periods.map((quarter) => <button key={quarter} className={quarter === selectedPeriod ? "active" : ""} onClick={() => setSelectedPeriod(quarter)}>{basketballQuarterLabel(quarter)}</button>)}</nav><BasketballLiveList events={visibleEvents} /></> : <BasketballSituationEmpty text="比赛尚未开始\n暂无文字直播数据" />}
+    {data.points.length ? <BasketballDifferenceChart event={event} data={data} renderLogo={(name) => <TeamCrest name={name} />} /> : <BasketballSituationEmpty text={event.status === "upcoming" ? "比赛尚未开始，暂无分差数据" : "暂无分差数据"} />}
+    <BasketballPeriodScoreTable event={event} data={data} />
+    {data.stats.get(selectedPeriod) ? <BasketballPeriodMetrics stats={data.stats.get(selectedPeriod)!} /> : <BasketballSituationEmpty text="暂无本节数据" />}
+    <nav className="match-timeline-tabs basketball-situation-view-tabs" aria-label="篮球赛况内容"><button className={view === "text" ? "active" : ""} onClick={() => setView("text")}>文字直播</button><button className={view === "statistics" ? "active" : ""} onClick={() => setView("statistics")}>技术统计</button></nav>
+    <section className="basketball-situation-module basketball-text-live">
+      {view === "statistics" ? <StatisticsPanel event={event} /> : periods.length ? <><nav className="basketball-period-tabs" aria-label="文字直播小节">{periods.map((quarter) => <button key={quarter} className={quarter === selectedPeriod ? "active" : ""} onClick={() => setSelectedPeriod(quarter)}>{basketballQuarterLabel(quarter)}</button>)}</nav><BasketballLiveList events={visibleEvents} /></> : <BasketballSituationEmpty text="比赛尚未开始\n暂无文字直播数据" />}
     </section>
   </section>;
 }
-function MatchTimelinePanel({ event }: { event: EventDetailEvent }) { return event.sport === "basketball" ? <BasketballSituationPanel event={event} /> : <FootballMatchTimelinePanel event={event} />; }
+export function MatchTimelinePanel({ event }: { event?: EventDetailEvent }) {
+  if (!event) return <EmptyDetailState text="赛事不存在或已下线" />;
+  return event.sport === "basketball" ? <BasketballSituationPanel key={event.id} event={event} /> : <FootballMatchTimelinePanel key={event.id} event={event} />;
+}
 function EventDetailTabs({ event }: { event: EventDetailEvent }) { const [tab, setTab] = useState<"statistics" | "timeline" | "lineup">("statistics"); return <section className="event-detail-tabs"><nav aria-label="赛事详情内容"><button className={tab === "statistics" ? "active" : ""} onClick={() => setTab("statistics")}>技术统计</button><button className={tab === "timeline" ? "active" : ""} onClick={() => setTab("timeline")}>赛况</button><button className={tab === "lineup" ? "active" : ""} onClick={() => setTab("lineup")}>阵容</button></nav>{tab === "statistics" ? <StatisticsPanel event={event} /> : tab === "timeline" ? <MatchTimelinePanel event={event} /> : event.sport === "football" ? <FootballLineup event={event} /> : <BasketballLineup event={event} />}</section>; }
 
 export function EventDetailPage({ event, onBack }: { event?: EventDetailEvent; onBack: () => void }) { if (!event) return <main className="event-detail-page"><header className="event-missing-header"><button aria-label="返回" onClick={onBack}><ArrowLeftIcon /></button></header><EmptyDetailState text="赛事不存在或已下线" /></main>; return <main className="event-detail-page"><EventVisualHeader event={event} onBack={onBack} /><EventDetailTabs event={event} /></main>; }
