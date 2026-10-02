@@ -1,10 +1,12 @@
-export type TabIconName = "home" | "events" | "chat" | "profile";
+export type TabIconName = "home" | "data" | "events" | "chat" | "profile";
 
 type BottomTabIconProps = { name: TabIconName; className?: string };
 
 /** Local, reusable tab icons. Paths intentionally use currentColor for state styling. */
 export function BottomTabIcon({ name, className }: BottomTabIconProps) {
   const common = { className, viewBox: "0 0 1024 1024", "aria-hidden": true, focusable: false };
+
+  if (name === "data") return <svg {...common}><path d="M160 160v704h704" fill="none" stroke="currentColor" strokeWidth="76" strokeLinecap="round" strokeLinejoin="round" /><rect x="285" y="490" width="115" height="260" rx="25" fill="currentColor" /><rect x="475" y="330" width="115" height="420" rx="25" fill="currentColor" /><rect x="665" y="180" width="115" height="570" rx="25" fill="currentColor" /></svg>;
 
   if (name === "home") return <svg {...common}>
     <path d="M806.4 299.669333A120.896 120.896 0 0 1 874.666667 408.533333V741.546667a120.896 120.896 0 0 1-120.896 120.874666H270.229333A120.896 120.896 0 0 1 149.333333 741.568V408.512a120.896 120.896 0 0 1 68.266667-108.842667l241.749333-116.949333a120.896 120.896 0 0 1 105.301334 0L806.4 299.669333z m-571.264 36.266667a80.597333 80.597333 0 0 0-45.504 72.576V741.546667a80.597333 80.597333 0 0 0 80.597333 80.597333h483.541334a80.597333 80.597333 0 0 0 80.597333-80.597333V408.512c0-30.933333-17.664-59.093333-45.504-72.554667l-241.770667-116.949333a80.704 80.704 0 0 0-70.186666 0l-241.770667 116.949333z" fill="currentColor" />
