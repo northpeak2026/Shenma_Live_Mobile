@@ -12,3 +12,12 @@
 .host-info .live-avatar{color:transparent;background-image:url("/assets/service-avatars-grid.png");background-repeat:no-repeat;background-position:0 0;background-size:300% 300%}
 .host-announcement-direct{display:block;margin:7px 0 0 auto;padding:4px 8px;border:1px solid #8a6ee4;border-radius:7px;color:#7055c7;background:#fff;font-size:10px;font-weight:800}.host-announcement-direct:active{color:#fff;background:#7b60d3}
 .rank-row>.vip{flex:0;font-size:9px;font-weight:400}
+.room-chat-body{position:relative;display:flex;flex:1;min-height:0}
+.room-chat-body .room-messages{padding-right:82px}
+.live-chat-entries{position:absolute;z-index:2;right:10px;bottom:12px;display:flex;flex-direction:column;gap:12px}
+.live-chat-entries button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:60px;min-height:58px;padding:8px 3px;border:1px solid #ffffffd9;border-radius:16px;font-size:10px;font-weight:700;animation:chat-entry-shake 5s ease-in-out infinite}
+.live-chat-entries svg{width:21px;height:21px}
+.chat-entry-reward{color:#9c6428;background:linear-gradient(145deg,#fff0c9,#ffe4cb);box-shadow:0 3px 10px #b9852420}
+.chat-entry-invite{color:#436bc4;background:linear-gradient(145deg,#e5f1ff,#eae5ff);box-shadow:0 3px 10px #537ac320;animation-delay:1.9s!important}
+@keyframes chat-entry-shake{0%,76%,90%,100%{transform:translateX(0) rotate(0)}79%,85%{transform:translateX(-1px) rotate(-1deg)}82%,88%{transform:translateX(1px) rotate(1deg)}}
+@media(prefers-reduced-motion:reduce){.live-chat-entries button{animation:none}}
