@@ -9,7 +9,7 @@ import { EventDetailPage, makeEventDetail, type EventDetailPayload } from "./eve
 import "./prototype.css";
 
 type TabKey = "home" | "matches" | "data" | "chat" | "profile";
-type Route = "home" | "data" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "forgot-password" | "reset-password" | "noble-gift" | "following" | "recharge" | "tasks" | "activities" | "invite" | "invite-records" | "messages" | "reward-history" | "watch-history" | "customer-service";
+type Route = "home" | "data" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "forgot-password" | "reset-password" | "noble-gift" | "following" | "recharge" | "tasks" | "check-in" | "activities" | "invite" | "invite-records" | "messages" | "reward-history" | "watch-history" | "customer-service";
 type LoginMode = "code" | "password";
 const pagesProjectBase = "/Shenma_Live_Mobile";
 const appInfo = { name: "神马直播", version: "1.0.0" };
@@ -94,7 +94,7 @@ const timeOptions = ["01:00", "03:00", "19:00", "20:30", "22:00", "23:30"];
 function makeSportsEvents(sport: Sport, status: EventStatus, count: number): SportsEvent[] { const teams = sport === "football" ? footballTeams : basketballTeams; const leagues = sport === "football" ? footballLeagueNames : basketballLeagueNames; const dates = status === "upcoming" ? scheduleDateOptions : status === "finished" ? resultDateOptions : [todayDateKey]; return Array.from({ length: count }, (_, index) => { const streamersForEvent = index % 6 === 0 ? streamerCatalog : index % 4 === 0 ? streamerCatalog.slice(0, 2) : index % 3 === 0 ? streamerCatalog.slice(0, 1) : []; const liveStage = sport === "football" ? ["上半场 10'", "上半场 38'", "中场", "下半场 63'"][index % 4] : ["第1节 08:32", "第2节 04:16", "半场", "第3节 06:20"][index % 4]; const isBasketball = sport === "basketball"; const quarterCount = status === "finished" ? 4 : status === "live" ? [1, 2, 2, 3][index % 4] : 0; const quarterScores = isBasketball && quarterCount ? Array.from({ length: quarterCount }, (_, quarter) => ({ quarter: quarter + 1, home: 20 + ((index + quarter * 3) % 12), away: 19 + ((index * 2 + quarter * 2) % 12) })) : undefined; const totalHome = quarterScores?.reduce((total, row) => total + row.home, 0); const totalAway = quarterScores?.reduce((total, row) => total + row.away, 0); const lowerHalf = status === "live" && liveStage.startsWith("下半场"); return { id: `${sport}-${status}-${index + 1}`, sport, league: leagues[index % leagues.length], date: dates[index % dates.length], startTime: timeOptions[index % timeOptions.length], status, stage: status === "live" ? liveStage : undefined, home: { name: teams[(index * 2) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalHome : (index % 4) + 1 }, away: { name: teams[(index * 2 + 1) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalAway : index % 3 }, halftimeScore: sport === "football" && (status === "finished" || lowerHalf) ? { home: 1, away: 0 } : undefined, corners: sport === "football" && status !== "upcoming" ? { home: 3 + (index % 3), away: 2 + (index % 3) } : undefined, quarterScores, isFeatured: index < 12, favorite: index % 7 === 0, hasAnimation: streamersForEvent.length === 0, streamers: streamersForEvent, detail: makeEventDetail(sport, status, index) }; }); }
 const sportsEvents: SportsEvent[] = ["football", "basketball"].flatMap((sport) => ([...makeSportsEvents(sport as Sport, "live", 12), ...makeSportsEvents(sport as Sport, "upcoming", 70), ...makeSportsEvents(sport as Sport, "finished", 70)]));
 const secondaryTitles: Record<Exclude<Route, "home" | "data" | "search" | "preview" | "live" | "profile" | "about" | "user-agreement" | "privacy-policy" | "chat" | "chat-detail" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team">, string> = {
-  download: "下载 App", settings: "设置", login: "登录", "forgot-password": "忘记密码", "reset-password": "设置新密码", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", activities: "活动中心", invite: "好友邀请", "invite-records": "邀请记录", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史", "customer-service": "在线客服",
+  download: "下载 App", settings: "设置", login: "登录", "forgot-password": "忘记密码", "reset-password": "设置新密码", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", "check-in": "每日签到", activities: "活动中心", invite: "好友邀请", "invite-records": "邀请记录", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史", "customer-service": "在线客服",
 };
 const commonFeatures: Array<{ id: "tasks" | "activities" | "invite" | "invite-records" | "messages"; label: string }> = [{ id: "tasks", label: "任务中心" }, { id: "activities", label: "活动中心" }, { id: "invite", label: "好友邀请" }, { id: "messages", label: "消息中心" }];
 const moreFeatures: Array<{ id: "reward-history" | "watch-history" | "customer-service"; label: string }> = [{ id: "reward-history", label: "领取记录" }, { id: "watch-history", label: "观看历史" }, { id: "customer-service", label: "在线客服" }];
@@ -143,6 +143,9 @@ export default function Prototype() {
   const [dataLeague, setDataLeague] = useState("英超");
   const [dataCompetition, setDataCompetition] = useState<"NBA" | "CBA">("NBA");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkIn, setCheckIn] = useState<CheckInState>(readCheckInState);
+  useEffect(() => { try { localStorage.setItem(checkInStorageKey, JSON.stringify(checkIn)); } catch { /* Keep the current session usable when storage is unavailable. */ } }, [checkIn]);
+  const [taskCenter, setTaskCenter] = useState<TaskCenterState>(initialTaskCenter);
   const [loginMode, setLoginMode] = useState<LoginMode>("code");
   const keyboard = useKeyboard();
   useEffect(() => { const handleBack = () => { const next = routeFromLocation(); setRoute(next); setTab(next === "data" ? "data" : next === "profile" ? "profile" : next === "chat" || next === "chat-detail" ? "chat" : next === "sports" || next === "sports-search" || next === "sports-filter" || next === "sports-filter-results" || next === "sports-detail" || next === "sports-team" ? "matches" : "home"); if (next === "sports-filter-results") { setSportsContext(readSportsContextFromLocation()); setSelectedLeagueIds(new URLSearchParams(window.location.search).get("leagues")?.split(",").filter(Boolean) ?? []); } if (next === "home" || next === "sports" || next === "data") requestAnimationFrame(() => { const node = document.querySelector<HTMLElement>(".mobile-scroll"); if (node) node.scrollTop = next === "data" ? history.state?.scrollTop ?? 0 : next === "home" ? homeScroll.current : sportsScroll.current; }); }; window.addEventListener("popstate", handleBack); return () => window.removeEventListener("popstate", handleBack); }, []);
@@ -177,6 +180,8 @@ export default function Prototype() {
   const teamName = decodeURIComponent(appPathname().split("/")[3] || "球队"); const teamSport = new URLSearchParams(window.location.search).get("sport") === "basketball" ? "basketball" : "football";
   const accountScreen = (() => {
     if (route === "invite" || route === "invite-records") return <InviteFlow recordsPage={route === "invite-records"} onRecords={() => { keyboard.hide(); navigate("invite-records"); }} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate(route === "invite-records" ? "invite" : "profile"); }} />;
+    if (route === "check-in") return <CheckInPage state={checkIn} onSign={() => setCheckIn((current) => signCheckIn(current, platformDate()))} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
+    if (route === "tasks") return <TaskCenterPage state={taskCenter} onClaim={(id) => setTaskCenter((current) => claimTaskReward(current, id))} onCompleteTask={() => { keyboard.hide(); openLiveRoom("live-1"); }} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "download") return <DownloadLandingPage />;
     if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={navigate} onLogin={() => openLogin()} onLogout={() => setIsLoggedIn(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
     if (route === "login") return <MobileScroll className="app-screen"><LoginPage mode={loginMode} onModeChange={setLoginMode} onBack={() => { keyboard.hide(); history.back(); }} onLogin={completeLogin} onForgotPassword={openForgotPassword} onOpenDocument={openAboutDocument} /></MobileScroll>;
@@ -187,6 +192,98 @@ export default function Prototype() {
   if (accountScreen) return accountScreen;
   return <>{route === "preview" ? <PreviewPage day={day} setDay={setDay} reminded={reminded} setReminded={setReminded} expanded={expanded} setExpanded={setExpanded} onBack={() => history.back()} /> : route === "live" ? <LiveRoomPage onNavigate={(next) => { keyboard.hide(); navigate(next); }} key={liveRoomId} getEventById={(id) => sportsEvents.find((event) => event.id === id)} liveRoomId={liveRoomId} conversation={conversations[0]} onBack={() => history.back()} /> : route === "search" ? <MobileScroll className="app-screen"><LiveSearchPage onCancel={() => history.back()} onOpenLive={openLiveRoom} /></MobileScroll> : route === "about" ? <MobileScroll className="app-screen"><AboutPage onBack={() => history.back()} onOpenDocument={openAboutDocument} /></MobileScroll> : route === "user-agreement" || route === "privacy-policy" ? <MobileScroll className="app-screen"><LegalPlaceholderPage title={route === "user-agreement" ? "用户协议" : "隐私政策"} onBack={() => history.back()} /></MobileScroll> : route === "sports-detail" ? <MobileScroll className="app-screen"><EventDetailPage event={detailEvent} onBack={() => history.back()} /></MobileScroll> : route === "sports-team" ? <MobileScroll className="app-screen"><TeamDetailPage name={teamName} sport={teamSport} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onOpenEvent={openSportsDetail} onBack={() => history.back()} /></MobileScroll> : route === "sports-search" ? <MobileScroll className="app-screen"><SportsSearchPage favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onOpenEvent={openSportsDetail} onCancel={() => history.back()} /></MobileScroll> : route === "sports-filter" ? <MobileScroll className="app-screen"><SportsFilterPage context={sportsContext} favorites={sportsFavorites} selectedLeagueIds={selectedLeagueIds} setSelectedLeagueIds={setSelectedLeagueIds} onBack={() => history.back()} onConfirm={openSportsFilterResults} /></MobileScroll> : route === "sports-filter-results" ? <MobileScroll className="app-screen"><SportsFilterResultsPage context={sportsContext} selectedLeagueIds={selectedLeagueIds} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} onBack={() => history.back()} onOpenEvent={openSportsDetail} /></MobileScroll> : route === "data" ? <MobileScroll className="app-screen"><DataPage sport={dataSport} setSport={setDataSport} league={dataLeague} setLeague={setDataLeague} competition={dataCompetition} setCompetition={setDataCompetition} /></MobileScroll> : route === "sports" ? <MobileScroll className="app-screen"><SportsPage onSearch={openSportsSubpage} onFilter={openSportsFilter} onOpenEvent={openSportsDetail} context={sportsContext} setContext={setSportsContext} favorites={sportsFavorites} onToggleFavorite={toggleSportsFavorite} /></MobileScroll> : route === "chat-detail" ? <ChatDetailPage conversation={conversation} conversationIndex={conversations.findIndex((item) => item.id === conversation.id)} onBack={() => history.back()} /> : route === "chat" ? <MobileScroll className="app-screen"><ChatListPage onOpenConversation={openConversation} /></MobileScroll> : route === "profile" ? <MobileScroll className="app-screen"><ProfilePageV2 onNavigate={navigate} /></MobileScroll> : secondary ? <MobileScroll className="app-screen">{route === "following" ? <FollowingPage onBack={() => history.back()} /> : <PlaceholderPage title={secondaryTitles[route]} onBack={() => history.back()} />}</MobileScroll> : <MobileScroll className="app-screen">{tab === "home" ? <HomePageV2 categories={categories} banners={banners} matches={[...matches, ...sportsEvents.filter((event) => event.streamers.length > 0 && event.status !== "finished" && !matches.some((match) => match.id === event.id)).slice(0, 6).map((event) => ({ id: event.id, league: event.league, state: event.status === "live" ? "直播中" : event.startTime, home: event.home.name, away: event.away.name, score: event.status === "live" ? `${event.home.score} : ${event.away.score}` : "VS", tone: event.sport === "football" ? "purple" : "blue" }))].map((match) => { const event = sportsEvents.find((item) => item.id === match.id); return { ...match, state: event?.status === "live" ? "直播中" : event?.startTime ?? match.state, streamers: event?.streamers ?? [] }; })} streams={streams} category={category} activeBanner={activeBanner} bannerRestart={bannerRestart} assetUrl={assetUrl} crest={crest} avatar={(name, index) => <Avatar name={name} index={index} />} setCategory={setCategory} selectBanner={selectBanner} openPreview={openPreview} onDownload={openDownload} onSearch={openLiveSearch} onOpenLive={openLiveRoom} onOpenEvent={openHomeSportsDetail} /> : <EmptyPage title={{ matches: "赛事", chat: "聊天", profile: "我的", data: "数据", home: "直播" }[tab]} />}</MobileScroll>}{(route === "home" || route === "data" || route === "profile" || route === "chat" || route === "sports") && <BottomTabs active={route === "data" ? "data" : route === "profile" ? "profile" : route === "chat" ? "chat" : route === "sports" ? "matches" : tab} onSelect={chooseTab} />}</>;
 }
+type CheckInDay = { day: number; rewards: TaskReward[] };
+type CheckInState = { streak: number; cycleSigned: number; lastSignedDate: string | null; grants: Array<{ date: string; day: number; rewards: TaskReward[] }> };
+const checkInStorageKey = "shenma-check-in-v1";
+const checkInDays: CheckInDay[] = [
+  { day: 1, rewards: [{ type: "coin", name: "金币", quantity: 100, symbol: "●" }] },
+  { day: 2, rewards: [{ type: "diamond", name: "钻石", quantity: 10, symbol: "◆" }] },
+  { day: 3, rewards: [{ type: "coin", name: "金币", quantity: 100, symbol: "●" }, { type: "diamond", name: "钻石", quantity: 20, symbol: "◆" }, { type: "draw", name: "免费抽奖次数", quantity: 1, symbol: "✧" }] },
+  { day: 4, rewards: [{ type: "gift", name: "加油棒", quantity: 1, symbol: "✦" }] },
+  { day: 5, rewards: [{ type: "draw", name: "免费转盘抽奖次数", quantity: 2, symbol: "✧" }] },
+  { day: 6, rewards: [{ type: "diamond", name: "钻石", quantity: 30, symbol: "◆" }] },
+  { day: 7, rewards: [{ type: "mount", name: "星光坐骑（1天）", quantity: 1, symbol: "♞" }, { type: "diamond", name: "钻石", quantity: 50, symbol: "◆" }] },
+];
+function platformDate(now = new Date()) { return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit" }).format(now); }
+function initialCheckInState(): CheckInState { return { streak: 2, cycleSigned: 2, lastSignedDate: null, grants: [] }; }
+function readCheckInState(): CheckInState {
+  try { const saved = JSON.parse(localStorage.getItem(checkInStorageKey) ?? "null"); if (saved && Number.isInteger(saved.streak) && saved.streak >= 0 && Number.isInteger(saved.cycleSigned) && saved.cycleSigned >= 0 && saved.cycleSigned <= checkInDays.length && (saved.lastSignedDate === null || /^\d{4}-\d{2}-\d{2}$/.test(saved.lastSignedDate)) && Array.isArray(saved.grants)) return saved; } catch { /* Fall back to the initial prototype state. */ }
+  return initialCheckInState();
+}
+function activeCheckInCycle(state: CheckInState, date: string) { return state.cycleSigned === checkInDays.length && state.lastSignedDate !== date ? 0 : state.cycleSigned; }
+function signCheckIn(state: CheckInState, date: string): CheckInState {
+  if (state.lastSignedDate === date) return state;
+  const signed = activeCheckInCycle(state, date);
+  const day = checkInDays[signed];
+  if (!day) return state;
+  return { streak: state.streak + 1, cycleSigned: signed + 1, lastSignedDate: date, grants: [{ date, day: day.day, rewards: day.rewards.map((reward) => ({ ...reward })) }, ...state.grants] };
+}
+function CheckInPage({ state, onSign, onBack }: { state: CheckInState; onSign: () => void; onBack: () => void }) {
+  const [today, setToday] = useState(platformDate);
+  const [showSuccess, setShowSuccess] = useState(false);
+  useEffect(() => { const update = () => setToday(platformDate()); const timer = window.setInterval(update, 1000); window.addEventListener("focus", update); return () => { window.clearInterval(timer); window.removeEventListener("focus", update); }; }, []);
+  const signed = activeCheckInCycle(state, today);
+  const signedToday = state.lastSignedDate === today;
+  const rewardToday = checkInDays[signedToday ? Math.max(0, signed - 1) : signed]?.rewards ?? [];
+  const sign = () => { const date = platformDate(); if (state.lastSignedDate === date) return; setToday(date); onSign(); setShowSuccess(true); };
+  return <div className="task-shell checkin-shell screen-content"><header className="task-toolbar checkin-fixed-header"><AuthHeader title="每日签到" onBack={onBack} /><section className={`checkin-current-status ${signedToday ? "done" : "available"}`} aria-label="今日签到状态"><div><strong>{signedToday ? "✓ 今日已签到" : "今日尚未签到"}</strong><p>{signedToday ? "今日奖励已领取，明天再来" : "签到即可领取今日全部奖励"}</p></div>{signedToday ? <span className="checkin-status-confirmed">已签到</span> : <button className="auth-primary" onClick={sign}>立即签到</button>}</section></header><MobileScroll className="task-scroll"><main className="task-content checkin-content">
+    <section className="checkin-overview"><span>每天相见，每天有礼</span><h2>连续签到 <strong>{state.streak}</strong> 天</h2><p>{signedToday ? "今日已签到，明天继续收获好礼" : "今日好礼已准备，记得来签到"}</p><div className="checkin-overview-icon" aria-hidden="true"><ClockIcon /><b>✓</b></div></section>
+    <div className="checkin-section-heading"><h2>7 日签到奖励</h2><span>本轮已签到 {signed}/7 天</span></div>
+    <div className="checkin-grid">{checkInDays.map((day, index) => { const status = index < signed ? "signed" : !signedToday && index === signed ? "today" : "future"; return <article className={`checkin-day ${status} ${day.day === 7 ? "cycle-last" : ""}`} key={day.day}><div className="checkin-day-heading"><h3>第{day.day}天</h3><span>{status === "signed" ? "✓ 已签到" : status === "today" ? "今日可签到" : "未到签到时间"}</span></div><TaskRewardBadges rewards={day.rewards} /><div className="checkin-day-footer">{status === "today" ? <button className="auth-primary" onClick={sign}>签到</button> : <span>{status === "signed" ? "奖励已领取" : "等待解锁"}</span>}</div></article>; })}</div>
+    <p className="checkin-note">每天可签到一次，领取当天全部奖励。完成 7 天后，次日开启新一轮签到。</p>
+    {showSuccess && signedToday && <section className="checkin-success" role="status"><span className="checkin-success-icon" aria-hidden="true">✓</span><div><h2>签到成功</h2><p>本次获得</p><TaskRewardBadges rewards={rewardToday} /></div><button aria-label="关闭签到成功提示" onClick={() => setShowSuccess(false)}>×</button></section>}
+  </main></MobileScroll></div>;
+}
+
+type TaskReward = { type: string; name: string; quantity: number; symbol: string };
+type CenterTask = { id: string; kind: "danmaku" | "watch" | "subscribe"; name: string; description: string; progress: number; target: number; unit?: string; status: "unfinished" | "ready" | "claimed"; rewards: TaskReward[] };
+type TaskRewardRecord = { id: string; taskName: string; rewards: TaskReward[]; claimedAt: string };
+type TaskCenterState = { tasks: CenterTask[]; records: TaskRewardRecord[] };
+const initialTaskCenter: TaskCenterState = {
+  tasks: [
+    { id: "send-danmaku", kind: "danmaku", name: "发送弹幕", description: "在任意直播间发送一条弹幕，参与精彩互动", progress: 1, target: 1, status: "ready", rewards: [{ type: "diamond", name: "钻石", quantity: 10, symbol: "◆" }] },
+    { id: "watch-live", kind: "watch", name: "观看直播 30 秒", description: "观看任意直播累计 30 秒，精彩不错过", progress: 18, target: 30, unit: "秒", status: "unfinished", rewards: [{ type: "coin", name: "金币", quantity: 100, symbol: "●" }] },
+    { id: "subscribe-host", kind: "subscribe", name: "订阅主播", description: "关注一位喜欢的主播，及时获取开播动态", progress: 1, target: 1, status: "claimed", rewards: [{ type: "gift", name: "加油棒", quantity: 1, symbol: "✦" }] },
+  ],
+  records: [
+    { id: "history-subscribe", taskName: "订阅主播", rewards: [{ type: "gift", name: "加油棒", quantity: 1, symbol: "✦" }], claimedAt: "2026-10-09T10:45:00+08:00" },
+    { id: "history-watch", taskName: "观看直播 30 秒", rewards: [{ type: "coin", name: "金币", quantity: 100, symbol: "●" }], claimedAt: "2026-10-08T21:20:00+08:00" },
+    { id: "history-send", taskName: "发送弹幕", rewards: [{ type: "diamond", name: "钻石", quantity: 10, symbol: "◆" }], claimedAt: "2026-10-08T20:30:00+08:00" },
+    { id: "history-draw", taskName: "观看直播 30 秒", rewards: [{ type: "draw", name: "免费抽奖次数", quantity: 1, symbol: "✧" }], claimedAt: "2026-10-07T19:10:00+08:00" },
+    { id: "history-mount", taskName: "订阅主播", rewards: [{ type: "mount", name: "星光坐骑（1天）", quantity: 1, symbol: "♞" }, { type: "item", name: "应援徽章", quantity: 1, symbol: "✪" }], claimedAt: "2026-10-06T18:00:00+08:00" },
+  ],
+};
+function claimTaskReward(state: TaskCenterState, id: string): TaskCenterState {
+  const task = state.tasks.find((item) => item.id === id);
+  if (!task || task.status !== "ready") return state;
+  const claimedAt = new Date().toISOString();
+  return { tasks: state.tasks.map((item) => item.id === id ? { ...item, status: "claimed" } : item), records: [{ id: `${id}-${claimedAt}`, taskName: task.name, rewards: task.rewards.map((reward) => ({ ...reward })), claimedAt }, ...state.records] };
+}
+function taskClaimTime(value: string) {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value));
+}
+function TaskRewardBadges({ rewards }: { rewards: TaskReward[] }) {
+  return <div className="task-rewards">{rewards.map((reward, index) => <span className={`task-reward ${reward.type === "coin" ? "coin" : reward.type === "diamond" ? "diamond" : "item"}`} key={`${reward.type}-${index}`}><i aria-hidden="true">{reward.symbol}</i>{reward.name} × {reward.quantity}</span>)}</div>;
+}
+function TaskRewardHistory({ records }: { records: TaskRewardRecord[] }) {
+  if (!records.length) return <div className="task-empty"><ClockIcon /><h2>暂无奖励记录</h2><p>完成任务并领取奖励后，可在这里查看</p></div>;
+  return <div className="task-history-list">{[...records].sort((a, b) => Date.parse(b.claimedAt) - Date.parse(a.claimedAt)).map((record) => <article className="task-history-card" key={record.id}><div className="task-history-heading"><h2>{record.taskName}</h2><span>已领取</span></div><TaskRewardBadges rewards={record.rewards} /><time dateTime={record.claimedAt}>领取时间：{taskClaimTime(record.claimedAt)}</time></article>)}</div>;
+}
+function TaskCenterPage({ state, onClaim, onCompleteTask, onBack }: { state: TaskCenterState; onClaim: (id: string) => void; onCompleteTask: (kind: CenterTask["kind"]) => void; onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<"list" | "records">("list");
+  const [toast, setToast] = useState("");
+  const claimPending = useRef(new Set<string>());
+  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2400); return () => window.clearTimeout(timer); }, [toast]);
+  const claim = (task: CenterTask) => {
+    if (task.status !== "ready" || claimPending.current.has(task.id)) return;
+    claimPending.current.add(task.id); onClaim(task.id); setToast("奖励领取成功");
+  };
+  const labels = { unfinished: "未完成", ready: "已完成待领取", claimed: "已领取" };
+  return <div className="task-shell screen-content"><header className="task-toolbar"><AuthHeader title="任务中心" onBack={onBack} /><nav className="task-tabs" role="tablist" aria-label="任务中心页面"><button id="task-list-tab" role="tab" aria-selected={activeTab === "list"} aria-controls="task-list-panel" className={activeTab === "list" ? "active" : ""} onClick={() => setActiveTab("list")}>任务列表</button><button id="task-records-tab" role="tab" aria-selected={activeTab === "records"} aria-controls="task-records-panel" className={activeTab === "records" ? "active" : ""} onClick={() => setActiveTab("records")}>奖励记录</button></nav></header><MobileScroll className="task-scroll"><main className="task-content" role="tabpanel" id={activeTab === "list" ? "task-list-panel" : "task-records-panel"} aria-labelledby={activeTab === "list" ? "task-list-tab" : "task-records-tab"}>
+    {activeTab === "list" ? <><div className="task-intro"><h2>做任务，收获精彩好礼</h2><p>完成任务后，记得领取你的奖励</p></div><div className="task-list">{state.tasks.map((task) => <article className={`task-card ${task.status}`} key={task.id}><div className="task-card-heading"><span className={`task-icon ${task.kind}`} aria-hidden="true">{task.kind === "danmaku" ? <ChatBubbleIcon /> : task.kind === "watch" ? <PlayIcon /> : <PersonIcon />}</span><h2>{task.name}</h2><span className="task-status">{labels[task.status]}</span></div><p className="task-description">{task.description}</p><div className="task-progress-copy"><span>完成进度</span><b>{task.progress}/{task.target}{task.unit ?? ""}</b></div><progress value={task.progress} max={task.target} aria-label={`${task.name}完成进度`} /><div className="task-card-bottom"><div><span className="task-reward-label">任务奖励</span><TaskRewardBadges rewards={task.rewards} /></div><button className={`task-action ${task.status}`} disabled={task.status === "claimed"} onClick={() => task.status === "ready" ? claim(task) : onCompleteTask(task.kind)}>{task.status === "unfinished" ? "去完成" : task.status === "ready" ? "领取奖励" : "已领取"}</button></div></article>)}</div></> : <><div className="task-intro"><h2>我的奖励记录</h2><p>每一份收获，都有迹可循</p></div><TaskRewardHistory records={state.records} /></>}
+  </main></MobileScroll>{toast && <div className="invite-toast" role="status">{toast}</div>}</div>;
+}
+
 const inviteRewardPerFriend = 88;
 type InviteRecord = { name: string; account: string; registeredAt: string; status: "已完成" | "审核中" | "未达成"; reward: number };
 const inviteRecords: InviteRecord[] = [
@@ -277,7 +374,7 @@ function ProfilePageV2({ onNavigate }: { onNavigate: (route: Route) => void }) {
 
 function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLoggedIn: boolean; onNavigate: (route: Route) => void; onLogin: () => void; onLogout: () => void }) {
   const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
-    [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
+    [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "check-in", label: "每日签到", tone: "more-2" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
     [{ id: "activities", label: "活动中心", tone: "more-2" }, { id: "invite", label: "好友邀请", tone: "more-0" }],
     [{ id: "customer-service", label: "在线客服", tone: "more-1" }],
     [{ id: "watch-history", label: "观看历史", tone: "more-2" }],
