@@ -44,7 +44,7 @@ const previewEvents = [
 ];
 const userData = {
   isLoggedIn: true,
-  user: { nickname: "Harry", id: "SM20260925", avatar: "", followingCount: 36 },
+  user: { nickname: "Harry", id: "SM20260925", avatar: "", followingCount: 36, vipLevel: 3, experience: 2500 },
   assets: { diamonds: 12580, coins: 26800 },
   following: [
     { nickname: "地瓜", followers: "12.8万", status: "live" },
@@ -391,6 +391,21 @@ function ProfilePageV2({ onNavigate }: { onNavigate: (route: Route) => void }) {
   return <main className="profile-page screen-content"><header className="profile-top"><div className="profile-actions"><button className="profile-action" aria-label="消息中心" onClick={() => onNavigate("messages")}><ChatBubbleIcon /><i className="profile-badge" aria-hidden="true" /></button></div></header><section className="profile-user-card"><div className="profile-user">{userData.isLoggedIn ? <Avatar name={userData.user.nickname} index={1} /> : <span className="profile-logo">马</span>}<button className="profile-name" onClick={() => !userData.isLoggedIn && onNavigate("login")}>{userData.isLoggedIn ? userData.user.nickname : "登录 / 注册"}{!userData.isLoggedIn && <ChevronRightIcon />}</button></div><button className="following-total" onClick={() => onNavigate("following")}><strong>{formatNumber(userData.user.followingCount)}</strong><span>关注</span><ChevronRightIcon /></button></section><section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{formatNumber(userData.assets.diamonds)}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{formatNumber(userData.assets.coins)}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section><section className="profile-feature-groups">{groups.map((group, groupIndex) => <div className="feature-group" key={groupIndex}>{group.map((feature) => <button className="feature-row" key={feature.id} onClick={() => onNavigate(feature.id)}><span className={`more-icon ${feature.tone}`}>{feature.id === "about" ? <InfoCircledIcon /> : <ClockIcon />}</span><b>{feature.label}</b><ChevronRightIcon /></button>)}</div>)}</section></main>;
 }
 
+type VipThreshold = { level: number; experience: number };
+const vipThresholds: VipThreshold[] = [{ level: 1, experience: 0 }, { level: 2, experience: 500 }, { level: 3, experience: 1500 }, { level: 4, experience: 5000 }, { level: 5, experience: 10000 }, { level: 6, experience: 20000 }];
+function vipProgress(level: number, experience: number, thresholds: VipThreshold[]) {
+  const sorted = [...thresholds].sort((a, b) => a.level - b.level);
+  const current = sorted.find((item) => item.level === level) ?? sorted[0];
+  const next = sorted.find((item) => item.level > current.level);
+  const progress = next ? Math.max(0, Math.min(1, (experience - current.experience) / (next.experience - current.experience))) : 1;
+  return { current, next, progress };
+}
+function ProfileVip({ level, experience, thresholds }: { level: number; experience: number; thresholds: VipThreshold[] }) {
+  const { current, next, progress } = vipProgress(level, experience, thresholds);
+  const number = (value: number) => value.toLocaleString("zh-CN");
+  return <div className="profile-vip"><div className="profile-vip-heading"><span className="profile-vip-badge"><span aria-hidden="true">♛</span> VIP {current.level}</span>{!next && <span>已达最高等级</span>}</div><div className="profile-vip-experience"><span>经验值</span><b>{number(experience)}{next ? ` / ${number(next.experience)}` : ""}</b></div><progress value={progress} max={1} aria-label={next ? `当前等级升级进度 ${Math.round(progress * 100)}%` : "已达最高等级"} /></div>;
+}
+
 function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLoggedIn: boolean; onNavigate: (route: Route) => void; onLogin: () => void; onLogout: () => void }) {
   const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
     [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "check-in", label: "每日签到", tone: "more-2" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
@@ -406,6 +421,7 @@ function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLogged
         {isLoggedIn ? <Avatar name={userData.user.nickname} index={1} /> : <button className="profile-avatar-placeholder" aria-label="登录" onClick={onLogin}><PersonIcon /></button>}
         {isLoggedIn ? <div className="profile-identity"><strong>{userData.user.nickname}</strong><small>ID：{userData.user.id}</small></div> : <button className="profile-login-entry" onClick={onLogin}><span className="profile-name">登录<ChevronRightIcon /></span><small>登录后获取更多精彩内容哦~</small></button>}
       </div>
+      {isLoggedIn && <ProfileVip level={userData.user.vipLevel} experience={userData.user.experience} thresholds={vipThresholds} />}
       <button className="following-total" onClick={() => isLoggedIn ? onNavigate("following") : onLogin()}><strong>{isLoggedIn ? formatNumber(userData.user.followingCount) : "0"}</strong><span>关注</span><ChevronRightIcon /></button>
     </section>
     <section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{isLoggedIn ? formatNumber(userData.assets.diamonds) : "0"}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{isLoggedIn ? formatNumber(userData.assets.coins) : "0"}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section>
