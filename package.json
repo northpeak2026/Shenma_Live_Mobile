@@ -11,7 +11,9 @@
     "predev": "node scripts/check-mobile-runtime.mjs",
     "dev": "vite",
     "prebuild": "node scripts/check-mobile-runtime.mjs",
-    "build": "tsc && vite build && node scripts/prepare-sites-build.mjs"
+    "build": "tsc && vite build && node scripts/prepare-sites-build.mjs",
+    "test:wheel": "node --test tests/lucky-wheel.test.mjs && playwright test -c playwright.wheel.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource/roboto": "5.2.10",
