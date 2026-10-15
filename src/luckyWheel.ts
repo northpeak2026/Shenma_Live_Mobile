@@ -31,7 +31,7 @@ export class WheelError extends Error { constructor(message: string, public defi
 export const wheelMock = import.meta.env.VITE_WHEEL_MODE !== 'api';
 const storageKey = 'shenma-wheel-demo-v1';
 export const pendingWheelKey = `shenma-wheel-pending-${wheelMock ? 'demo' : 'api'}`;
-type Store = { assets: WheelAssets; results: Record<string, DrawResult>; records: WheelRecord[]; grants: string[] };
+type Store = { assets: WheelAssets; results: Record<string, DrawResult>; records: WheelRecord[]; grants: string[]; journal?: AssetEntry[] };
 function read(): Store {
   const saved = localStorage.getItem(storageKey);
   return saved ? JSON.parse(saved) : { assets: { free: 3, coins: 26800, diamonds: 12580, experience: 0, gifts: {} }, results: {}, records: [], grants: [] };
@@ -52,8 +52,10 @@ export const mockWheelApi: WheelApi = {
       let ticket = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296 * demoWheelConfig.prizes.reduce((sum, p) => sum + p.weight, 0);
       const prize = demoWheelConfig.prizes.find((p) => (ticket -= p.weight) < 0)!;
       store.assets[method] -= cost;
+      if (method !== "free") appendAssetEntry(store, `${requestId}-cost`, method, "幸运转盘消耗", -cost);
       if (prize.kind === 'gift') store.assets.gifts[prize.giftId!] = (store.assets.gifts[prize.giftId!] ?? 0) + prize.quantity;
       else if (prize.kind !== 'none') store.assets[prize.kind] += prize.quantity;
+      if (prize.kind === "coins" || prize.kind === "diamonds" || prize.kind === "experience") appendAssetEntry(store, `${requestId}-reward`, prize.kind, "幸运转盘奖励", prize.quantity);
       const result = { requestId, prize: structuredClone(prize), assets: structuredClone(store.assets), createdAt: new Date().toISOString() };
       store.results[requestId] = result;
       if (prize.kind !== 'none' || demoWheelConfig.recordMisses) store.records.unshift({ id: requestId, prize: result.prize, createdAt: result.createdAt });
@@ -87,9 +89,30 @@ export function wheelStopAngle(current: number, index: number, count: number) {
   const target = (360 - index * 360 / count) % 360;
   return current + 360 * 5 + (target - current % 360 + 360) % 360;
 }
-export function grantWheelDemoRewards(id: string, rewards: { type: string; quantity: number }[]) {
+export function grantWheelDemoRewards(id: string, rewards: { type: string; quantity: number }[], source = "完成任务") {
   if (!wheelMock) return;
   const store = read(); if (store.grants.includes(id)) return;
-  for (const reward of rewards) { const key = ({ coin: 'coins', diamond: 'diamonds', draw: 'free', experience: 'experience' } as const)[reward.type as 'coin' | 'diamond' | 'draw' | 'experience']; if (key) store.assets[key] += reward.quantity; }
+  for (const reward of rewards) { const key = ({ coin: 'coins', diamond: 'diamonds', draw: 'free', experience: 'experience' } as const)[reward.type as 'coin' | 'diamond' | 'draw' | 'experience']; if (key) { store.assets[key] += reward.quantity; if (key !== "free") appendAssetEntry(store, `${id}-${key}`, key, source, reward.quantity); } }
   store.grants.push(id); write(store);
+}
+
+export type AssetKind = "coins" | "diamonds" | "experience";
+export type AssetEntry = { id: string; asset: AssetKind; source: string; createdAt: string; amount: number; balance?: number };
+function appendAssetEntry(store: Store, id: string, asset: AssetKind, source: string, amount: number) {
+  store.journal ??= []; store.journal.unshift({ id, asset, source, amount, balance: asset === "experience" ? 2500 + store.assets.experience : store.assets[asset], createdAt: new Date().toISOString() });
+}
+const seededHistoryAnchor = Date.now() - 60000;
+function seededAssetEntries(asset: AssetKind, balance: number): AssetEntry[] {
+  const sources = asset === "experience" ? ["完成任务", "每日签到", "幸运转盘奖励"] : ["完成任务", "邀请好友", "幸运转盘奖励", "每日签到", "直播间送礼", "幸运转盘消耗"];
+  let running = balance;
+  return Array.from({ length: 112 }, (_, i) => { const date = new Date(seededHistoryAnchor - i * 12 * 60 * 60 * 1000); const amount = asset === "experience" ? [30, 10, 20][i % 3] : i % 6 >= 4 ? -[50, 100][i % 2] : [100, 88, 66, 20][i % 4]; const entry = { id: `history-${asset}-${i}`, asset, source: sources[i % sources.length], createdAt: date.toISOString(), amount, balance: running }; running -= amount; return entry; });
+}
+export async function queryAssetEntries(asset: AssetKind, start: string, end: string, offset = 0, limit = 12): Promise<{ items: AssetEntry[]; hasMore: boolean }> {
+  if (!wheelMock) return request(`/asset-records?asset=${asset}&start=${start}&end=${end}&offset=${offset}&limit=${limit}`);
+  const store = read(); const journal = store.journal ?? [];
+  const first = journal.filter((entry) => entry.asset === asset).at(-1);
+  const balance = asset === "experience" ? 2500 + store.assets.experience : store.assets[asset];
+  const baseline = first?.balance !== undefined ? first.balance - first.amount : balance;
+  const all = [...journal.filter((entry) => entry.asset === asset), ...seededAssetEntries(asset, baseline)].filter((entry) => { const date = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Kuala_Lumpur" }).format(new Date(entry.createdAt)); return date >= start && date <= end; }).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return { items: all.slice(offset, offset + limit), hasMore: offset + limit < all.length };
 }

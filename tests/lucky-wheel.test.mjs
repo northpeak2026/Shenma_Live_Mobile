@@ -9,7 +9,7 @@ globalThis.window = { dispatchEvent() {} };
 Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
 Object.defineProperty(globalThis, 'crypto', { configurable: true, value: { getRandomValues: (array) => { array[0] = Math.floor(sample * 4294967296); return array; } } });
 const source = fs.readFileSync(new URL('../src/luckyWheel.ts', import.meta.url), 'utf8').replaceAll('import.meta.env', '({})');
-const { mockWheelApi: api, demoWheelConfig: config, wheelStopAngle, grantWheelDemoRewards } = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source, { mode: 'transform' })).toString('base64')}`);
+const { mockWheelApi: api, demoWheelConfig: config, wheelStopAngle, grantWheelDemoRewards, queryAssetEntries } = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source, { mode: 'transform' })).toString('base64')}`);
 const reset = () => { data.clear(); sample = .99; };
 for (const method of ['free', 'coins', 'diamonds']) test(`${method}: charge only chosen asset, misses still consume`, async () => {
   reset(); const before = await api.assets(); const result = await api.draw(method, method);
@@ -51,4 +51,26 @@ test('task awards are idempotent and share assets', async () => {
 test('every returned prize center lands exactly under top pointer over successive spins', () => {
   let angle = 0;
   for (let round = 0; round < 3; round++) for (let index = 0; index < 8; index++) { const next = wheelStopAngle(angle, index, 8); assert.ok(next - angle >= 1800); assert.equal((next + index * 45) % 360, 0); angle = next; }
+});
+
+test('asset histories isolate collections, paginate without overlap, filter dates and preserve balance chain', async () => {
+  reset();
+  for (const asset of ['coins', 'diamonds', 'experience']) {
+    const first = await queryAssetEntries(asset, '2000-01-01', '2099-12-31', 0, 12);
+    const second = await queryAssetEntries(asset, '2000-01-01', '2099-12-31', 12, 12);
+    assert.equal(first.items.length, 12); assert.equal(first.hasMore, true);
+    assert.ok(first.items.every((entry) => entry.asset === asset));
+    assert.ok(!first.items.some((entry) => second.items.some((other) => entry.id === other.id)));
+    for (let i = 0; i < first.items.length - 1; i++) { assert.ok(Date.parse(first.items[i].createdAt) >= Date.parse(first.items[i + 1].createdAt)); assert.equal(first.items[i].balance - first.items[i].amount, first.items[i + 1].balance); }
+    assert.equal((await queryAssetEntries(asset, '2000-01-01', '2000-01-02')).items.length, 0);
+  }
+});
+test('reward grant and wheel debit journal update atomically and repeated grants do not duplicate records', async () => {
+  reset(); const before = await api.assets();
+  grantWheelDemoRewards('daily-test', [{type:'coin',quantity:100},{type:'diamond',quantity:20},{type:'experience',quantity:30}], '每日签到');
+  grantWheelDemoRewards('daily-test', [{type:'coin',quantity:100}], '每日签到');
+  const after = await api.assets(); assert.equal(after.coins,before.coins+100); assert.equal(after.diamonds,before.diamonds+20); assert.equal(after.experience,30);
+  for (const asset of ['coins','diamonds','experience']) { const result=await queryAssetEntries(asset,'2000-01-01','2099-12-31'); const grants=result.items.filter((entry)=>entry.id.startsWith('daily-test'));assert.equal(grants.length,1);assert.equal(grants[0].source,'每日签到'); }
+  await api.draw('coins','ledger-spin');
+  const entries=await queryAssetEntries('coins','2000-01-01','2099-12-31');const debit=entries.items.find((entry)=>entry.id==='ledger-spin-cost'); assert.equal(debit.amount,-100);assert.equal(debit.balance,after.coins-100);
 });
