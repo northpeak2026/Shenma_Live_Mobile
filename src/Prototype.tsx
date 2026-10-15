@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeftIcon, ChatBubbleIcon, ChevronRightIcon, ClockIcon, GearIcon, HomeIcon, InfoCircledIcon, LightningBoltIcon, MagnifyingGlassIcon, PaperPlaneIcon, PersonIcon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons";
+import { ArrowLeftIcon, BackpackIcon, ChatBubbleIcon, ChevronRightIcon, ClockIcon, GearIcon, HomeIcon, InfoCircledIcon, LightningBoltIcon, MagnifyingGlassIcon, PaperPlaneIcon, PersonIcon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons";
 import { Carousel, KeyboardInput, MobileScroll, useKeyboard } from "./mobile";
 import { BottomTabIcon, type TabIconName } from "./tabIcons";
 import { LiveRoomPage } from "./live";
@@ -10,7 +10,7 @@ import "./prototype.css";
 import { wheelApi, wheelMock, pendingWheelKey, WheelError, wheelStopAngle, grantWheelDemoRewards, type WheelAssets, type WheelConfig, type DrawMethod, type DrawResult, type WheelRecord } from "./luckyWheel";
 
 type TabKey = "home" | "matches" | "data" | "chat" | "profile";
-type Route = "lucky-wheel" | "news-detail" | "home" | "data" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "forgot-password" | "reset-password" | "noble-gift" | "following" | "recharge" | "tasks" | "check-in" | "activities" | "invite" | "invite-records" | "messages" | "reward-history" | "watch-history" | "customer-service";
+type Route = "lucky-wheel" | "news-detail" | "home" | "data" | "search" | "download" | "preview" | "live" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team" | "chat" | "chat-detail" | "profile" | "about" | "user-agreement" | "privacy-policy" | "settings" | "login" | "forgot-password" | "reset-password" | "noble-gift" | "following" | "recharge" | "tasks" | "check-in" | "activities" | "invite" | "invite-records" | "messages" | "reward-history" | "watch-history";
 type LoginMode = "code" | "password";
 const pagesProjectBase = "/Shenma_Live_Mobile";
 const appInfo = { name: "神马直播", version: "1.0.0" };
@@ -95,10 +95,10 @@ const timeOptions = ["01:00", "03:00", "19:00", "20:30", "22:00", "23:30"];
 function makeSportsEvents(sport: Sport, status: EventStatus, count: number): SportsEvent[] { const teams = sport === "football" ? footballTeams : basketballTeams; const leagues = sport === "football" ? footballLeagueNames : basketballLeagueNames; const dates = status === "upcoming" ? scheduleDateOptions : status === "finished" ? resultDateOptions : [todayDateKey]; return Array.from({ length: count }, (_, index) => { const streamersForEvent = index % 6 === 0 ? streamerCatalog : index % 4 === 0 ? streamerCatalog.slice(0, 2) : index % 3 === 0 ? streamerCatalog.slice(0, 1) : []; const liveStage = sport === "football" ? ["上半场 10'", "上半场 38'", "中场", "下半场 63'"][index % 4] : ["第1节 08:32", "第2节 04:16", "半场", "第3节 06:20"][index % 4]; const isBasketball = sport === "basketball"; const quarterCount = status === "finished" ? 4 : status === "live" ? [1, 2, 2, 3][index % 4] : 0; const quarterScores = isBasketball && quarterCount ? Array.from({ length: quarterCount }, (_, quarter) => ({ quarter: quarter + 1, home: 20 + ((index + quarter * 3) % 12), away: 19 + ((index * 2 + quarter * 2) % 12) })) : undefined; const totalHome = quarterScores?.reduce((total, row) => total + row.home, 0); const totalAway = quarterScores?.reduce((total, row) => total + row.away, 0); const lowerHalf = status === "live" && liveStage.startsWith("下半场"); return { id: `${sport}-${status}-${index + 1}`, sport, league: leagues[index % leagues.length], date: dates[index % dates.length], startTime: timeOptions[index % timeOptions.length], status, stage: status === "live" ? liveStage : undefined, home: { name: teams[(index * 2) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalHome : (index % 4) + 1 }, away: { name: teams[(index * 2 + 1) % teams.length], score: status === "upcoming" ? undefined : isBasketball ? totalAway : index % 3 }, halftimeScore: sport === "football" && (status === "finished" || lowerHalf) ? { home: 1, away: 0 } : undefined, corners: sport === "football" && status !== "upcoming" ? { home: 3 + (index % 3), away: 2 + (index % 3) } : undefined, quarterScores, isFeatured: index < 12, favorite: index % 7 === 0, hasAnimation: streamersForEvent.length === 0, streamers: streamersForEvent, detail: makeEventDetail(sport, status, index) }; }); }
 const sportsEvents: SportsEvent[] = ["football", "basketball"].flatMap((sport) => ([...makeSportsEvents(sport as Sport, "live", 12), ...makeSportsEvents(sport as Sport, "upcoming", 70), ...makeSportsEvents(sport as Sport, "finished", 70)]));
 const secondaryTitles: Record<Exclude<Route, "news-detail" | "home" | "data" | "search" | "preview" | "live" | "profile" | "about" | "user-agreement" | "privacy-policy" | "chat" | "chat-detail" | "sports" | "sports-search" | "sports-filter" | "sports-filter-results" | "sports-detail" | "sports-team">, string> = {
-  "lucky-wheel": "幸运转盘", download: "下载 App", settings: "设置", login: "登录", "forgot-password": "忘记密码", "reset-password": "设置新密码", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", "check-in": "每日签到", activities: "活动中心", invite: "好友邀请", "invite-records": "邀请记录", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史", "customer-service": "在线客服",
+  "lucky-wheel": "幸运转盘", download: "下载 App", settings: "设置", login: "登录", "forgot-password": "忘记密码", "reset-password": "设置新密码", "noble-gift": "贵族盲盒礼包", following: "我的关注", recharge: "钻石充值", tasks: "任务中心", "check-in": "每日签到", activities: "活动中心", invite: "好友邀请", "invite-records": "邀请记录", messages: "消息中心", "reward-history": "领取记录", "watch-history": "观看历史",
 };
 const commonFeatures: Array<{ id: "tasks" | "activities" | "invite" | "invite-records" | "messages"; label: string }> = [{ id: "tasks", label: "任务中心" }, { id: "activities", label: "活动中心" }, { id: "invite", label: "好友邀请" }, { id: "messages", label: "消息中心" }];
-const moreFeatures: Array<{ id: "reward-history" | "watch-history" | "customer-service"; label: string }> = [{ id: "reward-history", label: "领取记录" }, { id: "watch-history", label: "观看历史" }, { id: "customer-service", label: "在线客服" }];
+const moreFeatures: Array<{ id: "reward-history" | "watch-history"; label: string }> = [{ id: "reward-history", label: "领取记录" }, { id: "watch-history", label: "观看历史" }];
 const conversations = [
   { id: "service-rain", nickname: "小雨客服", online: true, lastMessage: "您好，新人首存福利已经为您准备好了～", lastMessageTime: "10:32", messages: [{ id: 1, sender: "service", content: "您好～新人专属首存福利已经为您准备好了 🎁", time: "10:20" }, { id: 2, sender: "service", content: "首次充值 300，可任选：\n首存奖励 +100\n或\n108 包赔福利", time: "10:21" }, { id: 3, sender: "user", content: "两个只能选一个吗？", time: "10:25" }, { id: 4, sender: "service", content: "是的哦，首存奖励和包赔福利二选一即可。\n\n充值完成后就可以参与啦～", time: "10:26" }] },
   { id: "assistant-xinxin", nickname: "欣欣助理", online: true, lastMessage: "首存300可领取100奖励，也可以选择108包赔福利。", lastMessageTime: "09:46", messages: [{ id: 1, sender: "service", content: "早上好～首存 300 可领取 100 奖励，也可以选择 108 包赔福利。", time: "09:42" }, { id: 2, sender: "user", content: "我先了解一下活动规则。", time: "09:45" }, { id: 3, sender: "service", content: "好的，随时为您说明～", time: "09:46" }] },
@@ -190,7 +190,7 @@ export default function Prototype() {
     if (route === "reward-history") return <RewardHistoryPage records={[...taskCenter.records, ...checkIn.grants.map((grant) => ({ id: `check-in-${grant.date}`, taskName: "每日签到", rewards: grant.rewards, claimedAt: grant.claimedAt ?? `${grant.date}T00:00:00+08:00` }))]} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "tasks") return <TaskCenterPage state={taskCenter} onClaim={(id) => { const task = taskCenter.tasks.find((item) => item.id === id); if (task?.status === "ready") { grantWheelDemoRewards(`task-${id}`, task.rewards); setTaskCenter((current) => claimTaskReward(current, id)); } }} onCompleteTask={() => { keyboard.hide(); openLiveRoom("live-1"); }} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "download") return <DownloadLandingPage />;
-    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); if (next === "customer-service") chooseTab("chat"); else navigate(next); }} onLogin={() => openLogin()} onLogout={() => setIsLoggedIn(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
+    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); navigate(next); }} onLogin={() => openLogin()} onLogout={() => setIsLoggedIn(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
     if (route === "login") return <MobileScroll className="app-screen"><LoginPage mode={loginMode} onModeChange={setLoginMode} onBack={() => { keyboard.hide(); history.back(); }} onLogin={completeLogin} onForgotPassword={openForgotPassword} onOpenDocument={openAboutDocument} /></MobileScroll>;
     if (route === "forgot-password") return <MobileScroll className="app-screen"><ForgotPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onBackToLogin={returnToPasswordLogin} onNext={openResetPassword} /></MobileScroll>;
     if (route === "reset-password") return <MobileScroll className="app-screen"><ResetPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onComplete={returnToPasswordLogin} /></MobileScroll>;
@@ -386,7 +386,6 @@ function ProfilePageV2({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
     [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
     [{ id: "activities", label: "活动中心", tone: "more-2" }, { id: "invite", label: "好友邀请", tone: "more-0" }],
-    [{ id: "customer-service", label: "在线客服", tone: "more-1" }],
     [{ id: "watch-history", label: "观看历史", tone: "more-2" }],
     [{ id: "about", label: "关于我们", tone: "more-0" }],
   ];
@@ -402,6 +401,13 @@ function vipProgress(level: number, experience: number, thresholds: VipThreshold
   const progress = next ? Math.max(0, Math.min(1, (experience - current.experience) / (next.experience - current.experience))) : 1;
   return { current, next, progress };
 }
+function wheelExperience(assets: WheelAssets | null) {
+  return assets?.totalExperience ?? userData.user.experience + (assets?.experience ?? 0);
+}
+function wheelLevel(assets: WheelAssets | null) {
+  const experience = wheelExperience(assets);
+  return assets?.level ?? [...vipThresholds].reverse().find((item) => experience >= item.experience)?.level ?? vipThresholds[0].level;
+}
 function ProfileVip({ level, experience, thresholds }: { level: number; experience: number; thresholds: VipThreshold[] }) {
   const { current, next, progress } = vipProgress(level, experience, thresholds);
   const number = (value: number) => value.toLocaleString("zh-CN");
@@ -414,7 +420,6 @@ function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLogged
   const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
     [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "check-in", label: "每日签到", tone: "more-2" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
     [{ id: "activities", label: "活动中心", tone: "more-2" }, { id: "invite", label: "好友邀请", tone: "more-0" }],
-    [{ id: "customer-service", label: "在线客服", tone: "more-1" }],
     [{ id: "watch-history", label: "观看历史", tone: "more-2" }],
     [{ id: "about", label: "关于我们", tone: "more-0" }],
   ];
@@ -425,7 +430,7 @@ function ProfilePageV3({ isLoggedIn, onNavigate, onLogin, onLogout }: { isLogged
         {isLoggedIn ? <Avatar name={userData.user.nickname} index={1} /> : <button className="profile-avatar-placeholder" aria-label="登录" onClick={onLogin}><PersonIcon /></button>}
         {isLoggedIn ? <div className="profile-identity"><strong>{userData.user.nickname}</strong><small>ID：{userData.user.id}</small></div> : <button className="profile-login-entry" onClick={onLogin}><span className="profile-name">登录<ChevronRightIcon /></span><small>登录后获取更多精彩内容哦~</small></button>}
       </div>
-      {isLoggedIn && <ProfileVip level={userData.user.vipLevel} experience={userData.user.experience + (wheelAssets?.experience ?? 0)} thresholds={vipThresholds} />}
+      {isLoggedIn && <ProfileVip level={wheelLevel(wheelAssets)} experience={wheelExperience(wheelAssets)} thresholds={vipThresholds} />}
       <button className="following-total" onClick={() => isLoggedIn ? onNavigate("following") : onLogin()}><strong>{isLoggedIn ? formatNumber(userData.user.followingCount) : "0"}</strong><span>关注</span><ChevronRightIcon /></button>
     </section>
     <section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{isLoggedIn ? formatNumber(wheelAssets?.diamonds ?? userData.assets.diamonds) : "0"}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{isLoggedIn ? formatNumber(wheelAssets?.coins ?? userData.assets.coins) : "0"}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section>
@@ -616,7 +621,7 @@ function BottomTabs({ active, onSelect }: { active: TabKey; onSelect: (key: TabK
 }
 
 
-type NewsArticle = { id: string; league: string; title: string; summary: string; author: string; publishedAt: string; views: number; body: Array<{ type: "paragraph"; text: string } | { type: "image"; file: string; caption: string }> };
+type NewsArticle = { thumbnail: string; id: string; league: string; title: string; summary: string; author: string; publishedAt: string; views: number; body: Array<{ type: "paragraph"; text: string } | { type: "image"; file: string; caption: string }> };
 const newsLeagues = ["全部", "英超", "西甲", "德甲", "意甲", "法甲", "NBA", "CBA"];
 const newsSeeds = [
   ["英超", "争冠焦点前瞻：曼城与阿森纳的中场较量", "控球节奏与高位压迫将成为焦点。两队在备战中加强了中场衔接与边路保护，如何在攻守转换中找到空间，是本场比赛的重要看点。", "绿茵观察"],
@@ -628,9 +633,9 @@ const newsSeeds = [
   ["CBA", "联赛备战观察：广东与辽宁打磨阵容默契", "广东与辽宁在备战中加强攻防配合，重点演练快速推进和阵地防守。新老球员的衔接，也将影响球队的整体表现。", "篮坛观察"],
   ["英超", "利物浦备战笔记：高位逼抢背后的协作细节", "前场压迫需要全队同步移动。利物浦围绕逼抢后的快速出球进行演练，力求在保持进攻强度的同时控制身后空间。", "足球编辑部"],
 ];
-const newsArticles: NewsArticle[] = newsSeeds.map(([league, title, summary, author], index) => ({ id: `article-${index + 1}`, league, title, summary, author, publishedAt: `2026-10-${index < 4 ? "10" : "09"} ${String(12 - index).padStart(2, "0")}:30`, views: 2680 + index * 427, body: [{ type: "paragraph", text: summary }, { type: "image", file: league === "NBA" || league === "CBA" ? "live-cool.png" : "football-hero.png", caption: "赛事主题配图" }, { type: "paragraph", text: league === "NBA" || league === "CBA" ? "从训练安排来看，教练组重点关注球的转移与防守沟通。球员在挡拆后能否迅速识别防守变化，以及替补登场后能否延续比赛强度，都是观察阵容磨合的重要角度。" : "从战术安排来看，中场衔接与边路保护需要保持平衡。球队通过分组训练模拟不同的压迫方式，让球员在有限空间中练习快速决策，并加强攻守转换时的协作。" }, { type: "paragraph", text: "比赛的魅力也在于临场变化。阵容选择、体能分配与关键回合的执行，都值得球迷持续关注。更多赛事资讯与球队数据，可在平台资讯和数据分类中查看。" }] }));
+const newsArticles: NewsArticle[] = newsSeeds.map(([league, title, summary, author], index) => ({ thumbnail: league === "NBA" || league === "CBA" ? "live-cool.png" : "football-hero.png", id: `article-${index + 1}`, league, title, summary, author, publishedAt: `2026-10-${index < 4 ? "10" : "09"} ${String(12 - index).padStart(2, "0")}:30`, views: 2680 + index * 427, body: [{ type: "paragraph", text: summary }, { type: "image", file: league === "NBA" || league === "CBA" ? "live-cool.png" : "football-hero.png", caption: "赛事主题配图" }, { type: "paragraph", text: league === "NBA" || league === "CBA" ? "从训练安排来看，教练组重点关注球的转移与防守沟通。球员在挡拆后能否迅速识别防守变化，以及替补登场后能否延续比赛强度，都是观察阵容磨合的重要角度。" : "从战术安排来看，中场衔接与边路保护需要保持平衡。球队通过分组训练模拟不同的压迫方式，让球员在有限空间中练习快速决策，并加强攻守转换时的协作。" }, { type: "paragraph", text: "比赛的魅力也在于临场变化。阵容选择、体能分配与关键回合的执行，都值得球迷持续关注。更多赛事资讯与球队数据，可在平台资讯和数据分类中查看。" }] }));
 function NewsMeta({ article }: { article: NewsArticle }) { return <div className="news-meta"><span>{article.author}</span><time dateTime={article.publishedAt.replace(" ", "T")}>{article.publishedAt}</time><span>{formatNumber(article.views)}次查看</span></div>; }
-function NewsList({ league, onOpen }: { league: string; onOpen: (id: string) => void }) { return <main className="news-list">{newsArticles.filter((item) => league === "全部" || item.league === league).map((article) => <button className="news-card" key={article.id} onClick={() => onOpen(article.id)}><span className="news-league-label">{article.league}</span><h2>{article.title}</h2><p>{article.summary}</p><NewsMeta article={article} /></button>)}</main>; }
+function NewsList({ league, onOpen }: { league: string; onOpen: (id: string) => void }) { return <main className="news-list">{newsArticles.filter((item) => league === "全部" || item.league === league).map((article) => <button className="news-card" key={article.id} onClick={() => onOpen(article.id)}><span className="news-league-label">{article.league}</span><h2>{article.title}</h2><div className="news-card-preview"><p>{article.summary}</p><img className="news-thumbnail" src={assetUrl(article.thumbnail)} alt="" loading="lazy" decoding="async" draggable={false} width={104} height={78} /></div><NewsMeta article={article} /></button>)}</main>; }
 function NewsDetailPage({ article, onBack }: { article?: NewsArticle; onBack: () => void }) { return <section className="news-detail-shell screen-content"><header className="news-detail-toolbar"><button aria-label="返回新闻列表" onClick={onBack}><ArrowLeftIcon /></button><span>资讯详情</span></header><MobileScroll className="news-detail-scroll"><article className="news-detail">{article ? <><span className="news-league-label">{article.league}</span><h1>{article.title}</h1><NewsMeta article={article} /><div className="news-body">{article.body.map((block, index) => block.type === "paragraph" ? <p key={index}>{block.text}</p> : <figure key={index}><img src={assetUrl(block.file)} alt={block.caption} draggable={false} /><figcaption>{block.caption}</figcaption></figure>)}</div><p className="news-demo-note">本文为模拟新闻，仅用于功能体验。</p></> : <div className="news-missing"><h1>暂无该资讯</h1><button onClick={onBack}>返回新闻列表</button></div>}</article></MobileScroll></section>; }
 
 function LuckyWheelPage({ onBack, onTasks }: { onBack: () => void; onTasks: () => void }) {
@@ -651,6 +656,9 @@ function LuckyWheelPage({ onBack, onTasks }: { onBack: () => void; onTasks: () =
   const alive = useRef(true);
   const completion = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordGeneration = useRef(0);
+  const information = useRef<HTMLElement>(null);
+  const beforeDraw = useRef<WheelAssets | null>(null);
+  const [experienceBefore, setExperienceBefore] = useState<number | null>(null);
   const busy = phase !== 'idle';
   useEffect(() => { alive.current = true; return () => { alive.current = false; if (completion.current) clearTimeout(completion.current); }; }, []);
   const load = async () => {
@@ -668,7 +676,12 @@ function LuckyWheelPage({ onBack, onTasks }: { onBack: () => void; onTasks: () =
   useEffect(() => { setRecords([]); void loadRecords(); }, [scope, revision]);
   const finish = (next: DrawResult) => {
     if (!alive.current) return;
+    const before = beforeDraw.current ? wheelExperience(beforeDraw.current) : wheelExperience(next.assets) - (next.prize.kind === 'experience' ? next.prize.quantity : 0);
+    setExperienceBefore(next.prize.kind === 'experience' ? before : null);
     setAssets(next.assets); setResult(next); setPhase('idle'); locked.current = false;
+    if (next.prize.kind === 'experience' || next.prize.kind === 'gift') requestAnimationFrame(() => {
+      if (alive.current) information.current?.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
     localStorage.removeItem(pendingWheelKey); setRevision((value) => value + 1);
     setMessage(next.prize.kind === 'none' ? '谢谢惠顾，本次未中奖，抽奖消耗已生效' : `恭喜获得 ${next.prize.name} ×${next.prize.quantity}${wheelMock ? '（演示奖励）' : ''}`);
   };
@@ -685,6 +698,7 @@ function LuckyWheelPage({ onBack, onTasks }: { onBack: () => void; onTasks: () =
     if (assets[method] < config.costs[method]) { setMessage('次数或余额不足，请切换其他抽奖方式'); return; }
     const id = crypto.randomUUID();
     try { localStorage.setItem(pendingWheelKey, id); } catch { setMessage('无法保存抽奖凭证，请开启浏览器存储后重试'); return; }
+    beforeDraw.current = structuredClone(assets); setExperienceBefore(null);
     locked.current = true; setPhase('requesting'); setResult(null); setMessage('正在提交抽奖…');
     try { animate(await wheelApi.draw(method, id)); }
     catch (error) {
@@ -709,10 +723,63 @@ function LuckyWheelPage({ onBack, onTasks }: { onBack: () => void; onTasks: () =
   const methodNames = { free: '免费次数', coins: '金币', diamonds: '钻石' };
   return <div className="task-shell screen-content wheel-shell"><header className="task-toolbar"><AuthHeader title="幸运转盘" onBack={onBack} /></header><MobileScroll className="task-scroll"><main className="task-content wheel-content">
     {loadError ? <div className="wheel-state" role="alert">{loadError}<button onClick={() => void load()}>重新加载</button></div> : !config || !assets ? <p className="wheel-state" role="status">正在加载转盘和资产…</p> : <>
-    <section className="wheel-hero"><h2>转出你的幸运好礼</h2><p>八重惊喜，精彩每一转</p><div className="wheel-stage"><span className="wheel-pointer" aria-hidden="true" /><div className="wheel-disc" data-angle={angle} style={{ transform: `rotate(${angle}deg)`, background: `conic-gradient(from ${-180 / config.prizes.length}deg, ${config.prizes.map((_, index) => `${index % 2 ? '#edf4ff' : '#fff'} ${index * 360 / config.prizes.length}deg ${(index + 1) * 360 / config.prizes.length}deg`).join(',')})` }}>{config.prizes.map((prize, index) => <div className={`wheel-prize wheel-kind-${prize.kind}`} key={prize.id} style={{ transform: `rotate(${index * 360 / config.prizes.length}deg) translateY(calc(var(--wheel-size) * -.335)) rotate(${-index * 360 / config.prizes.length}deg)` }}><i aria-hidden="true">{prize.icon.startsWith('/') || prize.icon.startsWith('http') ? <img src={prize.icon} alt="" /> : prize.icon}</i><b>{prize.name}</b>{prize.quantity > 0 && <small>×{prize.quantity}</small>}</div>)}</div><div className="wheel-center" aria-hidden="true">幸<br />运</div></div></section>
-    <section className="wheel-card"><div className="wheel-heading"><h2>我的资产</h2><button disabled={busy} onClick={onTasks}>获取转盘次数 <ChevronRightIcon /></button></div><div className="wheel-assets">{(['free', 'diamonds', 'coins'] as DrawMethod[]).map((key) => <div key={key}><span>{methodNames[key]}</span><strong data-asset={key}>{assets[key].toLocaleString()}</strong></div>)}</div><div className="wheel-methods" role="group" aria-label="抽奖消耗方式">{(['free', 'coins', 'diamonds'] as DrawMethod[]).map((key) => <button key={key} aria-pressed={method === key} disabled={busy} className={method === key ? 'active' : ''} onClick={() => { setMethod(key); setMessage(''); }}><b>{methodNames[key]}</b><small>{config.costs[key]}{key === 'free' ? '次' : methodNames[key]} / 抽</small></button>)}</div><button className="auth-primary wheel-start" disabled={busy} onClick={() => void draw()}>{phase === 'spinning' ? '转盘转动中…' : phase === 'requesting' ? '正在提交…' : phase === 'uncertain' ? '结果待确认' : `开始抽奖 · 消耗 ${config.costs[method]} ${method === 'free' ? '次免费次数' : methodNames[method]}`}</button>{!busy && assets[method] < config.costs[method] && <p className="wheel-insufficient">{methodNames[method]}不足，请切换其他方式或完成任务</p>}{wheelMock && <p className="wheel-note">金币、钻石费用与中奖概率为演示配置，待确认。</p>}</section>
+    <section className="wheel-hero"><h2>转出你的幸运好礼</h2><p>八重惊喜，精彩每一转</p>
+    <div className="wheel-choice-panel"><div className="wheel-methods" role="group" aria-label="抽奖消耗方式">{(['free', 'coins', 'diamonds'] as DrawMethod[]).map((key) => <button key={key} aria-pressed={method === key} disabled={busy} className={method === key ? 'active' : ''} onClick={() => { setMethod(key); if (!result) setMessage(''); }}><b>{methodNames[key]}</b><small>{config.costs[key]}{key === 'free' ? '次' : methodNames[key]} / 抽</small></button>)}</div><p className="wheel-cost" id="wheel-cost">每次消耗 <b>{config.costs[method]} {method === 'free' ? '次免费次数' : methodNames[method]}</b><span>剩余 {assets[method].toLocaleString()}{method === 'free' ? ' 次' : ''}</span></p></div>
+    <div className="wheel-stage"><span className="wheel-pointer" aria-hidden="true" /><div className="wheel-disc" data-angle={angle} style={{ transform: `rotate(${angle}deg)`, background: `conic-gradient(from ${-180 / config.prizes.length}deg, ${config.prizes.map((_, index) => `${index % 2 ? '#edf4ff' : '#fff'} ${index * 360 / config.prizes.length}deg ${(index + 1) * 360 / config.prizes.length}deg`).join(',')})` }}>{config.prizes.map((prize, index) => <div className={`wheel-prize wheel-kind-${prize.kind}`} key={prize.id} style={{ transform: `rotate(${index * 360 / config.prizes.length}deg) translateY(calc(var(--wheel-size) * -.335)) rotate(${-index * 360 / config.prizes.length}deg)` }}><i aria-hidden="true">{prize.icon.startsWith('/') || prize.icon.startsWith('http') ? <img src={prize.icon} alt="" /> : prize.icon}</i><b>{prize.name}</b>{prize.quantity > 0 && <small>×{prize.quantity}</small>}</div>)}</div><button className="wheel-center wheel-start" disabled={busy} aria-label={`开始抽奖 · 消耗 ${config.costs[method]} ${method === 'free' ? '次免费次数' : methodNames[method]}`} aria-describedby="wheel-cost" onClick={() => void draw()}><b>{phase === 'spinning' ? '转动中' : phase === 'requesting' ? '提交中' : phase === 'uncertain' ? '待确认' : '开始'}</b><small>{busy ? '请稍候' : '抽奖'}</small></button></div></section>
+    {!busy && assets[method] < config.costs[method] && <p className="wheel-insufficient" role="status">{methodNames[method]}不足，请切换其他方式或完成任务</p>}
+    <section ref={information} className="wheel-card wheel-information" aria-label="我的信息"><div className="wheel-heading"><h2>我的信息</h2><button disabled={busy} onClick={onTasks}>获取转盘次数 <ChevronRightIcon /></button></div><div className="wheel-assets">{(['free', 'diamonds', 'coins'] as DrawMethod[]).map((key) => <div key={key}><span>{methodNames[key]}</span><strong data-asset={key}>{assets[key].toLocaleString()}</strong></div>)}</div>
+    <WheelUserInformation assets={assets} config={config} result={result} experienceBefore={experienceBefore} />
+</section>
     </>}
     {(message || phase === 'uncertain') && <section className={`wheel-result ${result ? 'complete' : ''}`} role="status" aria-live="polite">{result && <i aria-hidden="true">{result.prize.icon.startsWith('/') || result.prize.icon.startsWith('http') ? '✦' : result.prize.icon}</i>}<p>{message || '发现未确认的抽奖，请查询结果后继续'}</p>{phase === 'uncertain' && <button className="auth-secondary" onClick={() => void query()}>查询本次结果</button>}</section>}
-    <section className="wheel-card"><nav className="task-tabs" aria-label="奖品记录">{(['mine', 'others'] as const).map((key) => <button key={key} aria-pressed={scope === key} className={scope === key ? 'active' : ''} onClick={() => setScope(key)}>{key === 'mine' ? '我的奖品记录' : '其他人的奖品记录'}</button>)}</nav><div className="wheel-records">{records.map((record) => <article key={record.id}><span className="wheel-record-icon" aria-hidden="true">{record.prize.icon.startsWith('/') || record.prize.icon.startsWith('http') ? '✦' : record.prize.icon}</span><div>{scope === 'others' && <small>{record.nickname ?? '匿名球迷'}</small>}<b>{record.prize.name}{record.prize.quantity ? ` ×${record.prize.quantity}` : ''}</b><time dateTime={record.createdAt}>{taskClaimTime(record.createdAt)}</time></div></article>)}</div>{recordState === 'loading' && <p className="wheel-state">正在加载记录…</p>}{recordState === 'error' && <div className="wheel-state" role="alert">记录加载失败<button onClick={() => void loadRecords(records.length)}>重试</button></div>}{recordState === 'ready' && !records.length && <p className="wheel-state">暂无获奖记录，幸运好礼等你来转</p>}{recordState === 'ready' && hasMore && <button className="auth-secondary wheel-more" onClick={() => void loadRecords(records.length)}>加载更多</button>}</section>
+    <section className="wheel-card"><nav className="task-tabs" aria-label="奖品记录">{(['mine', 'others'] as const).map((key) => <button key={key} aria-pressed={scope === key} className={scope === key ? 'active' : ''} onClick={() => setScope(key)}>{key === 'mine' ? '我的奖品记录' : '全站奖品记录'}</button>)}</nav><div className="wheel-records">{records.map((record) => <article key={record.id}><span className="wheel-record-icon" aria-hidden="true">{record.prize.icon.startsWith('/') || record.prize.icon.startsWith('http') ? '✦' : record.prize.icon}</span><div>{scope === 'others' && <small>{record.nickname ?? '匿名球迷'}</small>}<b>{record.prize.name}{record.prize.quantity ? ` ×${record.prize.quantity}` : ''}</b><time dateTime={record.createdAt}>{taskClaimTime(record.createdAt)}</time></div></article>)}</div>{recordState === 'loading' && <p className="wheel-state">正在加载记录…</p>}{recordState === 'error' && <div className="wheel-state" role="alert">记录加载失败<button onClick={() => void loadRecords(records.length)}>重试</button></div>}{recordState === 'ready' && !records.length && <p className="wheel-state">暂无获奖记录，幸运好礼等你来转</p>}{recordState === 'ready' && hasMore && <button className="auth-secondary wheel-more" onClick={() => void loadRecords(records.length)}>加载更多</button>}</section>
   </main></MobileScroll></div>;
+}
+
+
+function WheelExperienceCounter({ value, from }: { value: number; from: number | null }) {
+  const [display, setDisplay] = useState(from ?? value);
+  useEffect(() => {
+    if (from === null || from === value || matchMedia('(prefers-reduced-motion: reduce)').matches) { setDisplay(value); return; }
+    let frame = 0;
+    let start: number | null = null;
+    setDisplay(from);
+    const tick = (now: number) => {
+      start ??= now;
+      const progress = Math.min(1, (now - start) / 700);
+      setDisplay(Math.round(from + (value - from) * (1 - (1 - progress) ** 3)));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value, from]);
+  return <span data-experience={value}>{display.toLocaleString('zh-CN')}</span>;
+}
+
+function WheelUserInformation({ assets, config, result, experienceBefore }: { assets: WheelAssets; config: WheelConfig; result: DrawResult | null; experienceBefore: number | null }) {
+  const experience = wheelExperience(assets);
+  const level = wheelLevel(assets);
+  const { next, progress } = vipProgress(level, experience, vipThresholds);
+  const previousLevel = [...vipThresholds].reverse().find((item) => (experienceBefore ?? experience) >= item.experience)?.level ?? 1;
+  const experienceAward = result?.prize.kind === 'experience';
+  const giftAward = result?.prize.kind === 'gift' ? result.prize : null;
+  const inventory = Object.entries(assets.gifts).filter(([, quantity]) => quantity > 0);
+  const giftArrived = !!giftAward?.giftId && assets.gifts[giftAward.giftId] > 0;
+  const icon = (value: string) => value.startsWith('/') || value.startsWith('http') ? <img src={value} alt="" /> : value;
+  return <>
+    <div key={`experience-${experienceAward ? result.requestId : 'idle'}`} className={`wheel-level ${experienceAward ? 'wheel-reward-highlight' : ''}`}>
+      <div className="wheel-level-heading"><span className="profile-vip-badge" data-user-level={level}><span aria-hidden="true">♛</span> VIP {level}</span><span>{next ? `距 VIP ${next.level} 还需 ${Math.max(0, next.experience - experience).toLocaleString('zh-CN')} 经验` : '已达最高等级'}</span></div>
+      <div className="wheel-experience"><span>累计经验</span><b><WheelExperienceCounter value={experience} from={experienceAward ? experienceBefore : null} />{next && <small> / {next.experience.toLocaleString('zh-CN')}</small>}</b></div>
+      <progress value={progress} max={1} aria-label={`等级经验进度 ${Math.round(progress * 100)}%`} />
+      {experienceAward && <div className="wheel-experience-gain" role="status"><b>经验 +{result.prize.quantity}</b><span>{experienceBefore?.toLocaleString('zh-CN')} → {experience.toLocaleString('zh-CN')}</span>{level > previousLevel && <strong>恭喜升级！VIP {previousLevel} → VIP {level}</strong>}</div>}
+    </div>
+    <section className={`wheel-backpack ${giftArrived ? 'has-new-gift' : ''}`} aria-label="我的背包"><div className="wheel-heading"><h3><BackpackIcon aria-hidden="true" /> 我的背包</h3><span className="wheel-bag-total">{inventory.reduce((sum, [, quantity]) => sum + quantity, 0)} 件礼物</span></div>
+      {giftAward && <div key={result!.requestId} className="wheel-bag-receipt" role="status"><i aria-hidden="true">{icon(giftAward.icon)}</i><div><b>{giftAward.name} ×{giftAward.quantity}</b><span>{giftArrived ? '✓ 已放入我的背包' : '礼物到账待同步'}</span></div></div>}
+      {!inventory.length ? <div className="wheel-bag-empty"><BackpackIcon aria-hidden="true" /><p>背包还没有礼物，转动转盘收集惊喜</p></div> : <div className="wheel-bag-grid">{inventory.map(([giftId, quantity]) => {
+        const gift = config.prizes.find((prize) => prize.kind === 'gift' && prize.giftId === giftId) ?? (giftAward?.giftId === giftId ? giftAward : null);
+        const isNew = giftArrived && giftId === giftAward?.giftId;
+        return <article key={`${giftId}-${isNew ? result!.requestId : 'stored'}`} className={isNew ? 'wheel-gift-new' : ''} data-gift-id={giftId}>{isNew && <em>新获得 +{giftAward!.quantity}</em>}<i aria-hidden="true">{icon(gift?.icon ?? '✦')}</i><b>{gift?.name ?? '神秘礼物'}</b><small>拥有 <strong>{quantity}</strong> 件</small></article>;
+      })}</div>}
+    </section>
+  </>;
 }

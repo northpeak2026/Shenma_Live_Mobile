@@ -1,6 +1,7 @@
 // Demo economics only. Production must return config and commit awards on its server.
 export type DrawMethod = 'free' | 'coins' | 'diamonds';
-export type WheelAssets = { free: number; coins: number; diamonds: number; experience: number; gifts: Record<string, number> };
+// totalExperience and level are authoritative profile fields when returned by the API.
+export type WheelAssets = { totalExperience?: number; level?: number; free: number; coins: number; diamonds: number; experience: number; gifts: Record<string, number> };
 export type WheelPrize = { id: string; name: string; quantity: number; icon: string; kind: 'diamonds' | 'coins' | 'experience' | 'gift' | 'free' | 'none'; giftId?: string; weight: number };
 export const demoWheelConfig = {
   costs: { free: 1, coins: 100, diamonds: 10 },

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-const prizes = ['钻石', '金币', '经验值', '超级跑车', '游艇', '火箭', '免费次数', '谢谢惠顾'].map((name, index) => ({ id: String(index), name, quantity: index === 6 ? 3 : index === 7 ? 0 : 1, icon: '✦', kind: index === 6 ? 'free' : index === 7 ? 'none' : 'gift', weight: 1 }));
-async function fixture(page: Page, options: { insufficient?: boolean; fail?: boolean; award?: number; recordFail?: boolean; timeout?: boolean } = {}) {
-  let assets = { free: options.insufficient ? 0 : 3, coins: 500, diamonds: 100, experience: 0, gifts: {} };
+const prizes = ['钻石', '金币', '经验值', '超级跑车', '游艇', '火箭', '免费次数', '谢谢惠顾'].map((name, index) => ({ id: String(index), name, quantity: index === 6 ? 3 : index === 7 ? 0 : index === 2 ? 100 : 1, icon: '✦', kind: ['diamonds', 'coins', 'experience', 'gift', 'gift', 'gift', 'free', 'none'][index], giftId: index >= 3 && index <= 5 ? ['super-car', 'yacht', 'rocket'][index - 3] : undefined, weight: 1 }));
+async function fixture(page: Page, options: { insufficient?: boolean; fail?: boolean; award?: number; recordFail?: boolean; timeout?: boolean; experience?: number; gifts?: Record<string, number>; totalExperience?: number } = {}) {
+  let assets = { free: options.insufficient ? 0 : 3, coins: 500, diamonds: 100, experience: options.experience ?? 0, gifts: options.gifts ?? {}, ...(options.totalExperience !== undefined ? { totalExperience: options.totalExperience } : {}) };
   const config = { costs: { free: 1, coins: 100, diamonds: 10 }, prizes, pageSize: 10, recordMisses: false, publicMisses: false };
   let submissions = 0;
   let result: any;
@@ -14,6 +14,11 @@ async function fixture(page: Page, options: { insufficient?: boolean; fail?: boo
       submissions++; const body = route.request().postDataJSON();
       const prize = prizes[options.award ?? 7];
       assets = { ...assets, [body.method]: assets[body.method as 'free' | 'coins' | 'diamonds'] - config.costs[body.method as 'free' | 'coins' | 'diamonds'], free: assets.free - (body.method === 'free' ? 1 : 0) + (prize.kind === 'free' ? 3 : 0) };
+      if (prize.kind === 'experience') {
+        assets.experience += prize.quantity;
+        if (assets.totalExperience !== undefined) assets.totalExperience += prize.quantity;
+      }
+      if (prize.kind === 'gift') assets.gifts = { ...assets.gifts, [prize.giftId!]: (assets.gifts[prize.giftId!] ?? 0) + prize.quantity };
       result = { requestId: body.requestId, prize, assets, createdAt: '2026-10-14T12:00:00Z' };
       if (options.fail) return route.abort('failed');
       if (options.timeout) await new Promise((resolve) => setTimeout(resolve, 11000));
@@ -74,4 +79,54 @@ for (const size of [{ width: 390, height: 844 }, { width: 427, height: 952 }, { 
   const bounds = await page.locator('.wheel-disc').boundingBox(); expect(bounds!.width).toBeLessThan(size.width); expect(bounds!.x).toBeGreaterThanOrEqual(0);
   await expect(page.locator('.wheel-start')).toBeVisible();
   await page.screenshot({ path: `artifacts/lucky-wheel/wheel-${size.width}.png` });
+});
+
+test('consumption choices sit above wheel and sole action is centered', async ({ page }) => {
+  await fixture(page); await page.goto('/lucky-wheel');
+  const disc = await page.locator('.wheel-disc').boundingBox();
+  const button = await page.locator('.wheel-start').boundingBox();
+  const choices = await page.locator('.wheel-methods').boundingBox();
+  expect(Math.abs(button!.x + button!.width / 2 - disc!.x - disc!.width / 2)).toBeLessThan(1);
+  expect(Math.abs(button!.y + button!.height / 2 - disc!.y - disc!.height / 2)).toBeLessThan(1);
+  expect(choices!.y + choices!.height).toBeLessThan(disc!.y);
+  await expect(page.locator('.wheel-start')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: '我的信息', exact: true })).toBeVisible();
+  await page.locator('.wheel-start').focus(); await page.keyboard.press('Enter');
+  await expect(page.getByText('谢谢惠顾，本次未中奖，抽奖消耗已生效')).toBeVisible();
+});
+test('experience reward counts up, upgrades level and persists after refresh', async ({ page }) => {
+  await fixture(page, { award: 2, experience: 2400 }); await page.goto('/lucky-wheel');
+  await expect(page.locator('[data-user-level]')).toHaveText('♛ VIP 3');
+  await expect(page.locator('[data-experience]')).toHaveText('4,900');
+  await page.locator('.wheel-start').click();
+  await expect(page.getByText('经验 +100', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-experience]')).toHaveText('5,000');
+  await expect(page.getByText('恭喜升级！VIP 3 → VIP 4')).toBeVisible();
+  await expect(page.locator('[data-user-level]')).toHaveText('♛ VIP 4');
+  await expect(page.locator('.wheel-level progress')).toHaveAttribute('value', '0');
+  await page.screenshot({ path: 'artifacts/lucky-wheel/experience-upgrade.png' });
+  await page.reload(); await expect(page.locator('[data-experience]')).toHaveText('5,000');
+  await expect(page.locator('[data-user-level]')).toHaveText('♛ VIP 4');
+});
+test('gift award shows receipt and new backpack quantity, retained on refresh', async ({ page }) => {
+  await fixture(page, { award: 3, gifts: { 'super-car': 2 } }); await page.goto('/lucky-wheel');
+  await expect(page.locator('[data-gift-id="super-car"] small')).toHaveText('拥有 2 件');
+  await page.locator('.wheel-start').click();
+  await expect(page.getByText('✓ 已放入我的背包')).toBeVisible();
+  await expect(page.locator('[data-gift-id="super-car"]')).toHaveClass('wheel-gift-new');
+  await expect(page.locator('[data-gift-id="super-car"] em')).toHaveText('新获得 +1');
+  await expect(page.locator('[data-gift-id="super-car"] small')).toHaveText('拥有 3 件');
+  await expect(page.locator('.wheel-bag-total')).toHaveText('3 件礼物');
+  await page.screenshot({ path: 'artifacts/lucky-wheel/gift-arrival.png' });
+  await page.reload(); await expect(page.locator('[data-gift-id="super-car"] small')).toHaveText('拥有 3 件');
+  await expect(page.locator('.wheel-gift-new')).toHaveCount(0);
+});
+test('authoritative total experience, maximum level and reduced motion feedback', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await fixture(page, { award: 2, totalExperience: 20000 }); await page.goto('/lucky-wheel');
+  await expect(page.locator('[data-user-level]')).toHaveText('♛ VIP 6');
+  await page.locator('.wheel-start').click();
+  await expect(page.locator('[data-experience]')).toHaveText('20,100');
+  await expect(page.getByText('已达最高等级', { exact: true })).toBeVisible();
+  await expect(page.locator('.wheel-level progress')).toHaveAttribute('value', '1');
 });
