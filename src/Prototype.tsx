@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeftIcon, BackpackIcon, ChatBubbleIcon, ChevronRightIcon, ClockIcon, GearIcon, HomeIcon, InfoCircledIcon, LightningBoltIcon, MagnifyingGlassIcon, PaperPlaneIcon, PersonIcon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons";
+import { ArrowLeftIcon, CopyIcon, Share1Icon, BackpackIcon, ChatBubbleIcon, ChevronRightIcon, ClockIcon, GearIcon, HomeIcon, InfoCircledIcon, LightningBoltIcon, MagnifyingGlassIcon, PaperPlaneIcon, PersonIcon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons";
 import { Carousel, KeyboardInput, MobileScroll, useKeyboard } from "./mobile";
 import { BottomTabIcon, type TabIconName } from "./tabIcons";
 import { LiveRoomPage } from "./live";
@@ -147,7 +147,8 @@ export default function Prototype() {
   const [dataSport, setDataSport] = useState<Sport>("football");
   const [dataLeague, setDataLeague] = useState("英超");
   const [dataCompetition, setDataCompetition] = useState<"NBA" | "CBA">("NBA");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => { try { return localStorage.getItem("shenma-login-state") !== "signed-out"; } catch { return true; } });
+  const updateLoginState = (loggedIn: boolean) => { setIsLoggedIn(loggedIn); try { localStorage.setItem("shenma-login-state", loggedIn ? "signed-in" : "signed-out"); } catch { /* Preserve the current session when browser storage is unavailable. */ } };
   const [checkIn, setCheckIn] = useState<CheckInState>(readCheckInState);
   useEffect(() => { try { localStorage.setItem(checkInStorageKey, JSON.stringify(checkIn)); } catch { /* Keep the current session usable when storage is unavailable. */ } }, [checkIn]);
   const [taskCenter, setTaskCenter] = useState<TaskCenterState>(initialTaskCenter);
@@ -171,7 +172,7 @@ export default function Prototype() {
   const openTeamDetail = (name: string, sport: Sport) => { sportsScroll.current = document.querySelector<HTMLElement>(".mobile-scroll")?.scrollTop ?? 0; history.pushState({ route: "sports-team", name, sport }, "", appUrl(`/sports/team/${encodeURIComponent(name)}?sport=${sport}`)); setRoute("sports-team"); setTab("matches"); };
   const openHomeSportsDetail = (id: string) => { homeScroll.current = document.querySelector<HTMLElement>(".mobile-scroll")?.scrollTop ?? 0; history.pushState({ route: "sports-detail", id, source: "home" }, "", appUrl(`/sports/event/${id}`)); setRoute("sports-detail"); setTab("home"); };
   const openLogin = (mode: LoginMode = "code") => { keyboard.hide(); setLoginMode(mode); navigate("login"); };
-  const completeLogin = () => { keyboard.hide(); setIsLoggedIn(true); history.replaceState({ route: "profile" }, "", appUrl("/profile")); setRoute("profile"); setTab("profile"); };
+  const completeLogin = () => { keyboard.hide(); updateLoginState(true); history.replaceState({ route: "profile" }, "", appUrl("/profile")); setRoute("profile"); setTab("profile"); };
   const openForgotPassword = () => { keyboard.hide(); setLoginMode("password"); navigate("forgot-password"); };
   const returnToPasswordLogin = () => { keyboard.hide(); setLoginMode("password"); history.replaceState({ route: "login" }, "", appUrl("/login")); setRoute("login"); };
   const openResetPassword = () => { keyboard.hide(); navigate("reset-password"); };
@@ -192,7 +193,7 @@ export default function Prototype() {
     if (route === "reward-history") return <RewardHistoryPage records={[...taskCenter.records, ...checkIn.grants.map((grant) => ({ id: `check-in-${grant.date}`, taskName: "每日签到", rewards: grant.rewards, claimedAt: grant.claimedAt ?? `${grant.date}T00:00:00+08:00` }))]} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "tasks") return <TaskCenterPage state={taskCenter} onClaim={(id) => { const task = taskCenter.tasks.find((item) => item.id === id); if (task?.status === "ready") { grantWheelDemoRewards(`task-${id}`, task.rewards); setTaskCenter((current) => claimTaskReward(current, id)); } }} onCompleteTask={() => { keyboard.hide(); openLiveRoom("live-1"); }} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "download") return <DownloadLandingPage />;
-    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); navigate(next); }} onLogin={() => openLogin()} onLogout={() => setIsLoggedIn(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
+    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); navigate(next); }} onLogin={() => openLogin()} onLogout={() => updateLoginState(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
     if (route === "login") return <MobileScroll className="app-screen"><LoginPage mode={loginMode} onModeChange={setLoginMode} onBack={() => { keyboard.hide(); history.back(); }} onLogin={completeLogin} onForgotPassword={openForgotPassword} onOpenDocument={openAboutDocument} /></MobileScroll>;
     if (route === "forgot-password") return <MobileScroll className="app-screen"><ForgotPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onBackToLogin={returnToPasswordLogin} onNext={openResetPassword} /></MobileScroll>;
     if (route === "reset-password") return <MobileScroll className="app-screen"><ResetPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onComplete={returnToPasswordLogin} /></MobileScroll>;
@@ -393,6 +394,8 @@ const inviteRecords: InviteRecord[] = [
 const inviteLink = `https://shenma.live/download?invite=${userData.user.id}`;
 function InviteFlow({ recordsPage, onRecords, onBack }: { recordsPage: boolean; onRecords: () => void; onBack: () => void }) {
   const [toast, setToast] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const shareLock = useRef(false);
   const [filter, setFilter] = useState("全部");
   const toastTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
@@ -401,6 +404,15 @@ function InviteFlow({ recordsPage, onRecords, onBack }: { recordsPage: boolean; 
     catch { setToast("复制失败，请长按邀请链接复制"); }
     window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(""), 2400);
+  };
+  const shareInvite = async () => {
+    if (shareLock.current) return;
+    const notify = (message: string) => { setToast(message); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(""), 3000); };
+    if (!navigator.share) { notify("当前浏览器暂不支持系统分享，请点击链接右侧复制"); return; }
+    shareLock.current = true; setSharing(true);
+    try { await navigator.share({ title: "精彩比赛，一起看！邀你加入神马直播", text: "和我一起见证赛场高光，畅聊每个精彩瞬间！点击专属链接下载并注册神马直播。", url: inviteLink }); }
+    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) notify("暂时无法分享，请稍后重试或复制邀请链接"); }
+    finally { shareLock.current = false; setSharing(false); }
   };
   const completed = inviteRecords.filter((record) => record.status === "已完成").length;
   const earned = inviteRecords.reduce((total, record) => total + record.reward, 0);
@@ -414,13 +426,12 @@ function InviteFlow({ recordsPage, onRecords, onBack }: { recordsPage: boolean; 
       <InviteRecordList records={shown} />
       <p className="invite-footnote">每成功邀请一位好友奖励 88 钻石，以平台审核结果为准</p>
     </> : <>
-      <section className="invite-hero"><img src={assetUrl("football-hero.png")} alt="足球运动员主题宣传海报" /><div className="invite-hero-copy"><span>与好友一起，见证精彩</span><h1>邀请好友<br /><em>赢钻石好礼</em></h1><p>好友通过你的邀请完成注册，<br />每成功邀请一位即可获得 88 钻石。</p></div><span className="invite-hero-diamond" aria-hidden="true">◆</span></section>
-      <section className="invite-card invite-reward-summary"><div><h2>邀请奖励</h2><p>每成功邀请一位好友</p><span>邀请的越多，奖励越多</span></div><strong><i aria-hidden="true">◆</i> {inviteRewardPerFriend}<small>钻石 / 人</small></strong></section>
+      <section className="invite-hero"><img src={assetUrl("football-hero.png")} alt="足球运动员主题宣传海报" /><div className="invite-hero-copy"><span>与好友一起，见证精彩</span><h1>邀请好友<br /><em>赢钻石好礼</em></h1><p>好友通过你的邀请完成注册</p><div className="invite-hero-reward"><span>每成功邀请一位</span><strong>◆ {inviteRewardPerFriend}<small> 钻石</small></strong></div><small className="invite-hero-reward-note">邀请的越多，奖励越多</small></div><span className="invite-hero-diamond" aria-hidden="true">◆</span></section>
       <section className="invite-card"><div className="invite-section-heading"><h2>我的邀请</h2><button onClick={onRecords}>邀请记录<ChevronRightIcon /></button></div><div className="invite-stats"><div><strong>{completed}<small> 人</small></strong><span>累计成功邀请人数</span></div><div><strong>{earned}<small> 钻石</small></strong><span>已获得钻石数量</span></div></div></section>
-      <section className="invite-card invite-share"><h2>邀请好友</h2><p>分享一份精彩，收获一份好礼</p><div className="invite-qr"><img src={assetUrl("invite-qr.svg")} alt="当前用户专属邀请二维码" /></div><p className="invite-qr-hint">好友扫码下载并注册神马直播</p><div className="invite-link-label">我的专属邀请链接</div><div className="invite-link" aria-label="专属邀请链接">{inviteLink}</div></section>
+      <section className="invite-card invite-share"><h2>邀请好友</h2><p>分享一份精彩，收获一份好礼</p><div className="invite-share-methods"><div className="invite-qr"><img src={assetUrl("invite-qr.svg")} alt="当前用户专属邀请二维码" /></div><div className="invite-share-link"><div className="invite-link-label">我的专属邀请链接</div><div className="invite-link" aria-label="专属邀请链接"><span>{inviteLink}</span><button className="invite-link-copy" aria-label="复制邀请链接" title="复制邀请链接" onClick={copyLink}><CopyIcon /></button></div><p className="invite-qr-hint">好友扫码或通过链接<br />下载并注册神马直播</p></div></div></section>
       <section className="invite-rules"><h2>活动规则</h2><ol><li>被邀请人需通过你的专属邀请链接或二维码下载并完成注册。</li><li>同一用户重复注册不重复计算，仅计入有效邀请。</li><li>每成功邀请一位好友完成有效注册，即可获得 88 钻石；奖励通过平台审核后发放，同一好友仅奖励一次。</li><li>异常账号、作弊注册等情况不计入有效邀请。</li><li>最终有效邀请人数及奖励以平台审核结果为准。</li></ol></section>
     </>}
-    </main></MobileScroll>{!recordsPage && <footer className="invite-action-bar"><button className="auth-primary" onClick={copyLink}>复制邀请链接</button></footer>}{toast && <div className="invite-toast" role="status">{toast}</div>}
+    </main></MobileScroll>{!recordsPage && <footer className="invite-action-bar"><button className="auth-primary" disabled={sharing} onClick={shareInvite}><Share1Icon />{sharing ? "正在分享…" : "分享邀请"}</button></footer>}{toast && <div className="invite-toast" role="status">{toast}</div>}
   </div>;
 }
 function InviteRecordList({ records }: { records: InviteRecord[] }) {
