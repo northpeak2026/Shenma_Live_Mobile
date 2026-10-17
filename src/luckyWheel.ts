@@ -97,19 +97,19 @@ export function grantWheelDemoRewards(id: string, rewards: { type: string; quant
 }
 
 export type AssetKind = "coins" | "diamonds" | "experience";
-export type AssetEntry = { id: string; asset: AssetKind; source: string; createdAt: string; amount: number; balance?: number };
+export type AssetEntry = { id: string; asset: AssetKind; type?: "tips-purchase"; source: string; createdAt: string; amount: number; balance?: number };
 function appendAssetEntry(store: Store, id: string, asset: AssetKind, source: string, amount: number) {
   store.journal ??= []; store.journal.unshift({ id, asset, source, amount, balance: asset === "experience" ? 2500 + store.assets.experience : store.assets[asset], createdAt: new Date().toISOString() });
 }
 const seededHistoryAnchor = Date.now() - 60000;
 function seededAssetEntries(asset: AssetKind, balance: number): AssetEntry[] {
-  const sources = asset === "experience" ? ["完成任务", "每日签到", "幸运转盘奖励"] : ["完成任务", "邀请好友", "幸运转盘奖励", "每日签到", "直播间送礼", "幸运转盘消耗"];
+  const sources = asset === "experience" ? ["完成任务", "每日签到", "幸运转盘奖励"] : ["完成任务", "邀请好友", "幸运转盘奖励", "每日签到", "直播间送礼", "幸运转盘消耗", "购买有料"];
   let running = balance;
-  return Array.from({ length: 112 }, (_, i) => { const date = new Date(seededHistoryAnchor - i * 12 * 60 * 60 * 1000); const amount = asset === "experience" ? [30, 10, 20][i % 3] : i % 6 >= 4 ? -[50, 100][i % 2] : [100, 88, 66, 20][i % 4]; const entry = { id: `history-${asset}-${i}`, asset, source: sources[i % sources.length], createdAt: date.toISOString(), amount, balance: running }; running -= amount; return entry; });
+  return Array.from({ length: 112 }, (_, i) => { const date = new Date(seededHistoryAnchor - i * 12 * 60 * 60 * 1000); const source = sources[i % sources.length]; const purchase = source === "购买有料"; const expense = ["直播间送礼", "幸运转盘消耗", "购买有料"].includes(source); const amount = asset === "experience" ? [30, 10, 20][i % 3] : purchase ? -(asset === "coins" ? 280 : 88) : expense ? -[50, 100][i % 2] : [100, 88, 66, 20][i % 4]; const entry: AssetEntry = { id: `history-${asset}-${i}`, asset, ...(purchase ? { type: "tips-purchase" as const } : {}), source, createdAt: date.toISOString(), amount, balance: running }; running -= amount; return entry; });
 }
 export async function queryAssetEntries(asset: AssetKind, start: string, end: string, offset = 0, limit = 12): Promise<{ items: AssetEntry[]; hasMore: boolean }> {
   if (!wheelMock) return request(`/asset-records?asset=${asset}&start=${start}&end=${end}&offset=${offset}&limit=${limit}`);
-  const store = read(); const journal = store.journal ?? [];
+  const store = read(); const journal: AssetEntry[] = (store.journal ?? []).map(entry => entry.type === "tips-purchase" || entry.source === "有料方案解锁" || entry.id.startsWith("tip-purchase-") ? { ...entry, type: "tips-purchase", source: "购买有料" } : entry);
   const first = journal.filter((entry) => entry.asset === asset).at(-1);
   const balance = asset === "experience" ? 2500 + store.assets.experience : store.assets[asset];
   const baseline = first?.balance !== undefined ? first.balance - first.amount : balance;

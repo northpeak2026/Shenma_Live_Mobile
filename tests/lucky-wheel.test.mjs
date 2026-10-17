@@ -74,3 +74,32 @@ test('reward grant and wheel debit journal update atomically and repeated grants
   await api.draw('coins','ledger-spin');
   const entries=await queryAssetEntries('coins','2000-01-01','2099-12-31');const debit=entries.items.find((entry)=>entry.id==='ledger-spin-cost'); assert.equal(debit.amount,-100);assert.equal(debit.balance,after.coins-100);
 });
+
+test('tips purchase history is a debit in each separate currency and does not mutate balances', async () => {
+  reset();
+  const before = await api.assets();
+  for (const asset of ['coins', 'diamonds']) {
+    const { items } = await queryAssetEntries(asset, '2000-01-01', '2100-01-01', 0, 200);
+    const purchases = items.filter(entry => entry.type === 'tips-purchase');
+    assert.ok(purchases.length > 0);
+    for (const entry of purchases) {
+      assert.equal(entry.source, '购买有料');
+      assert.equal(entry.asset, asset);
+      assert.equal(entry.amount, asset === 'coins' ? -280 : -88);
+    }
+  }
+  const experience = await queryAssetEntries('experience', '2000-01-01', '2100-01-01', 0, 200);
+  assert.ok(experience.items.every(entry => entry.type !== 'tips-purchase'));
+  assert.deepEqual(await api.assets(), before);
+});
+
+test('existing tips unlock ledger entries retain amounts and balances under the purchase type', async () => {
+  reset();
+  const assets = await api.assets();
+  const entry = { id: 'tip-purchase-plan-legacy', asset: 'diamonds', source: '有料方案解锁', amount: -88, balance: 12492, createdAt: new Date().toISOString() };
+  data.set('shenma-wheel-demo-v1', JSON.stringify({ assets, results: {}, records: [], grants: [], journal: [entry] }));
+  const result = await queryAssetEntries('diamonds', '2000-01-01', '2100-01-01', 0, 200);
+  const purchase = result.items.find(item => item.id === entry.id);
+  assert.deepEqual(purchase, { ...entry, type: 'tips-purchase', source: '购买有料' });
+  assert.equal(result.items.filter(item => item.id === entry.id).length, 1);
+});
