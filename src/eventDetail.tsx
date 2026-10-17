@@ -97,15 +97,13 @@ function BasketballSituationPanel({ event }: { event: EventDetailEvent }) {
   const currentPeriod = data.currentQuarter;
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
   useEffect(() => setSelectedPeriod(currentPeriod), [currentPeriod]);
-  const [view, setView] = useState<"text" | "statistics">("text");
   const visibleEvents = allEvents.filter((item) => item.quarter === selectedPeriod);
   return <section className="basketball-situation-panel">
     {data.points.length ? <BasketballDifferenceChart event={event} data={data} renderLogo={(name) => <TeamCrest name={name} />} /> : <BasketballSituationEmpty text={event.status === "upcoming" ? "比赛尚未开始，暂无分差数据" : "暂无分差数据"} />}
     <BasketballPeriodScoreTable event={event} data={data} />
     {data.stats.get(selectedPeriod) ? <BasketballPeriodMetrics stats={data.stats.get(selectedPeriod)!} /> : <BasketballSituationEmpty text="暂无本节数据" />}
-    <nav className="match-timeline-tabs basketball-situation-view-tabs" aria-label="篮球赛况内容"><button className={view === "text" ? "active" : ""} onClick={() => setView("text")}>文字直播</button><button className={view === "statistics" ? "active" : ""} onClick={() => setView("statistics")}>技术统计</button></nav>
     <section className="basketball-situation-module basketball-text-live">
-      {view === "statistics" ? <StatisticsPanel event={event} /> : periods.length ? <><nav className="basketball-period-tabs" aria-label="文字直播小节">{periods.map((quarter) => <button key={quarter} className={quarter === selectedPeriod ? "active" : ""} onClick={() => setSelectedPeriod(quarter)}>{basketballQuarterLabel(quarter)}</button>)}</nav><BasketballLiveList events={visibleEvents} /></> : <BasketballSituationEmpty text="比赛尚未开始\n暂无文字直播数据" />}
+      {periods.length ? <><nav className="basketball-period-tabs" aria-label="文字直播小节">{periods.map((quarter) => <button key={quarter} className={quarter === selectedPeriod ? "active" : ""} onClick={() => setSelectedPeriod(quarter)}>{basketballQuarterLabel(quarter)}</button>)}</nav><BasketballLiveList events={visibleEvents} /></> : <BasketballSituationEmpty text="比赛尚未开始\n暂无文字直播数据" />}
     </section>
   </section>;
 }
