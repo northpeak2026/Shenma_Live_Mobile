@@ -66,11 +66,11 @@ const downloadScreens = [
 ];
 const downloadTutorials: Record<DownloadPlatform, Array<{ title: string; description: string; visual: string; image?: string; imageWidth?: number; imageHeight?: number }>> = {
   ios: [
-    { title: "打开首页，点击「分享」", description: "在 iPhone 的 Chrome 浏览器中打开神马直播首页，点击地址栏右侧的分享图标。", visual: "chrome-share", image: "ios-chrome-step-1.png", imageWidth: 570, imageHeight: 1260 },
+    { title: "打开首页，点击「分享」", description: "在手机浏览器中打开神马直播网页，点击地址栏右侧的分享图标。", visual: "chrome-share", image: "ios-chrome-step-1.png", imageWidth: 570, imageHeight: 1260 },
     { title: "点击分享面板中的「更多」", description: "在弹出的分享面板中，点击下方操作栏右侧的「更多」（三个圆点），展开完整菜单。", visual: "chrome-more", image: "ios-chrome-step-2.png", imageWidth: 570, imageHeight: 1258 },
     { title: "选择「添加到主屏幕」", description: "在展开的菜单中找到「添加到主屏幕」并点击；如未看到，可向下滚动菜单。", visual: "chrome-menu", image: "ios-chrome-step-3.png", imageWidth: 572, imageHeight: 1250 },
-    { title: "确认名称，点击「添加」", description: "确认名称为「神马直播」及首页链接，可保留「作为网页 App 打开」，然后点击右上角的「添加」。", visual: "chrome-add", image: "ios-chrome-step-4.png", imageWidth: 576, imageHeight: 1244 },
-    { title: "从手机桌面打开神马直播", description: "返回手机主屏幕，点击新增的「神马直播」图标即可快捷访问，无需下载安装包或描述文件。", visual: "home-shortcut", image: "ios-chrome-step-5.png", imageWidth: 572, imageHeight: 1248 },
+    { title: "确认名称，点击「添加」", description: "确认名称为「神马直播」及首页链接，然后点击右上角的「添加」。", visual: "chrome-add", image: "ios-chrome-step-4.png", imageWidth: 576, imageHeight: 1244 },
+    { title: "从手机桌面打开神马直播", description: "返回手机主屏幕，点击新增的「神马直播」图标即可快捷访问。", visual: "home-shortcut", image: "ios-chrome-step-5.png", imageWidth: 572, imageHeight: 1248 },
   ],
   android: [
     { title: "下载 APK", description: "点击页面中的「立即下载」下载神马直播 APK。", visual: "apk" },
