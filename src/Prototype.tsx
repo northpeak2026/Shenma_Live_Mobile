@@ -173,6 +173,7 @@ export default function Prototype() {
   const [taskCenter, setTaskCenter] = useState<TaskCenterState>(initialTaskCenter);
   const [loginMode, setLoginMode] = useState<LoginMode>("code");
   const keyboard = useKeyboard();
+  const versionCheck = useAppVersionCheck((path) => { keyboard.hide(); history.pushState({ route: "download" }, "", appUrl(path)); setRoute("download"); });
   useEffect(() => { const handleBack = () => { const next = routeFromLocation(); setRoute(next); setTab(next === "data" ? "data" : next === "profile" ? "profile" : next === "tips" ? "tips" : next === "chat" || next === "chat-detail" ? "profile" : next === "sports" || next === "sports-search" || next === "sports-filter" || next === "sports-filter-results" || next === "sports-detail" || next === "sports-team" ? "matches" : "home"); if (next === "sports-filter-results") { setSportsContext(readSportsContextFromLocation()); setSelectedLeagueIds(new URLSearchParams(window.location.search).get("leagues")?.split(",").filter(Boolean) ?? []); } if (next === "home" || next === "sports" || next === "data") requestAnimationFrame(() => { const node = document.querySelector<HTMLElement>(".mobile-scroll"); if (node) node.scrollTop = next === "data" ? history.state?.scrollTop ?? 0 : next === "home" ? homeScroll.current : sportsScroll.current; }); }; window.addEventListener("popstate", handleBack); return () => window.removeEventListener("popstate", handleBack); }, []);
   useEffect(() => { if (route !== "home" || tab !== "home") return; const timer = window.setTimeout(() => { setActiveBanner((value) => (value + 1) % banners.length); setBannerRestart((value) => value + 1); }, 5000); return () => window.clearTimeout(timer); }, [activeBanner, bannerRestart, route, tab]);
   const selectBanner = (index: number) => { setActiveBanner(index); setBannerRestart((value) => value + 1); };
@@ -216,7 +217,7 @@ export default function Prototype() {
     if (route === "reward-history") return <RewardHistoryPage records={[...taskCenter.records, ...checkIn.grants.map((grant) => ({ id: `check-in-${grant.date}`, taskName: "每日签到", rewards: grant.rewards, claimedAt: grant.claimedAt ?? `${grant.date}T00:00:00+08:00` }))]} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "tasks") return <TaskCenterPage state={taskCenter} onClaim={(id) => { const task = taskCenter.tasks.find((item) => item.id === id); if (task?.status === "ready") { grantWheelDemoRewards(`task-${id}`, task.rewards); setTaskCenter((current) => claimTaskReward(current, id)); } }} onCompleteTask={() => { keyboard.hide(); openLiveRoom("live-1"); }} onBack={() => { keyboard.hide(); if (history.state?.route) history.back(); else navigate("profile"); }} />;
     if (route === "download") return <DownloadLandingPage />;
-    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 unreadCount={chatConversations.reduce((sum, item) => sum + item.unreadCount, 0)} isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); navigate(next); }} onLogin={() => openLogin()} onLogout={() => updateLoginState(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} /></>;
+    if (route === "profile") return <><MobileScroll className="app-screen"><ProfilePageV3 onCheckUpdate={() => { keyboard.hide(); void versionCheck.check(); }} checkingUpdate={versionCheck.checking} unreadCount={chatConversations.reduce((sum, item) => sum + item.unreadCount, 0)} isLoggedIn={isLoggedIn} onNavigate={(next) => { keyboard.hide(); navigate(next); }} onLogin={() => openLogin()} onLogout={() => updateLoginState(false)} /></MobileScroll><BottomTabs active="profile" onSelect={chooseTab} />{versionCheck.feedback}</>;
     if (route === "login") return <MobileScroll className="app-screen"><LoginPage mode={loginMode} onModeChange={setLoginMode} onBack={() => { keyboard.hide(); history.back(); }} onLogin={completeLogin} onForgotPassword={openForgotPassword} onOpenDocument={openAboutDocument} /></MobileScroll>;
     if (route === "forgot-password") return <MobileScroll className="app-screen"><ForgotPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onBackToLogin={returnToPasswordLogin} onNext={openResetPassword} /></MobileScroll>;
     if (route === "reset-password") return <MobileScroll className="app-screen"><ResetPasswordPage onBack={() => { keyboard.hide(); history.back(); }} onComplete={returnToPasswordLogin} /></MobileScroll>;
@@ -525,15 +526,48 @@ function ProfileVip({ level, experience, thresholds, onHistory }: { level: numbe
   return <div className="profile-vip"><div className="profile-vip-heading"><span className="profile-vip-badge"><span aria-hidden="true">♛</span> VIP {current.level}</span>{!next && <span>已达最高等级</span>}</div><button className="profile-vip-experience" onClick={onHistory} aria-label="经验值记录"><span>经验值 <ChevronRightIcon /></span><b>{number(experience)}{next ? ` / ${number(next.experience)}` : ""}</b></button><progress value={progress} max={1} aria-label={next ? `当前等级升级进度 ${Math.round(progress * 100)}%` : "已达最高等级"} /></div>;
 }
 
-function ProfilePageV3({ unreadCount, isLoggedIn, onNavigate, onLogin, onLogout }: { unreadCount: number; isLoggedIn: boolean; onNavigate: (route: Route) => void; onLogin: () => void; onLogout: () => void }) {
+type AppVersionResult = { currentVersion: string; latestVersion: string; changes: string[]; forceUpdate: boolean; updatePath: string };
+const appVersionScenarios: AppVersionResult[] = [
+  { currentVersion: appInfo.version, latestVersion: appInfo.version, changes: [], forceUpdate: false, updatePath: "/download" },
+  { currentVersion: appInfo.version, latestVersion: "1.2.0", changes: ["优化直播播放体验，观看更加流畅。", "新增更多精彩赛事和直播内容。", "修复部分已知问题，提升使用稳定性。"], forceUpdate: false, updatePath: "/download" },
+  { currentVersion: appInfo.version, latestVersion: "1.3.0", changes: ["升级直播播放服务，改善画面流畅度。", "优化聊天与消息接收体验。", "修复重要兼容性问题，请更新后继续使用。"], forceUpdate: true, updatePath: "/download" },
+];
+async function checkAppVersion(index: number): Promise<AppVersionResult> { return structuredClone(appVersionScenarios[index % appVersionScenarios.length]); }
+function VersionUpdateDialog({ version, onCancel, onUpdate }: { version: AppVersionResult | null; onCancel: () => void; onUpdate: () => void }) {
+  return <Dialog.Root open={version !== null} onOpenChange={(open) => { if (!open && !version?.forceUpdate) onCancel(); }}><Dialog.Portal container={document.querySelector<HTMLElement>(".mobile-h5-container")}><Dialog.Overlay className="calendar-overlay" /><Dialog.Content className="version-update-dialog" aria-label="版本更新" onEscapeKeyDown={(event) => { if (version?.forceUpdate) event.preventDefault(); }} onPointerDownOutside={(event) => { if (version?.forceUpdate) event.preventDefault(); }} onInteractOutside={(event) => { if (version?.forceUpdate) event.preventDefault(); }}><span className="version-update-icon" aria-hidden="true">↑</span><Dialog.Title>发现新版本</Dialog.Title><Dialog.Description>最新版本：V{version?.latestVersion}</Dialog.Description><div className="version-update-notes"><h3>更新内容</h3><ol>{version?.changes.map((change, index) => <li key={index}>{change}</li>)}</ol>{version?.forceUpdate && <p>请更新至最新版本后继续使用</p>}</div><div className="version-update-actions">{!version?.forceUpdate && <button className="version-update-cancel" onClick={onCancel}>取消</button>}<button className="auth-primary" onClick={onUpdate}>立即更新</button></div></Dialog.Content></Dialog.Portal></Dialog.Root>;
+}
+function useAppVersionCheck(onUpdate: (path: string) => void) {
+  const [checking, setChecking] = useState(false);
+  const [version, setVersion] = useState<AppVersionResult | null>(null);
+  const [toast, setToast] = useState("");
+  const sequence = useRef(0);
+  const locked = useRef(false);
+  const forced = useRef(false);
+  const toastTimer = useRef<number | undefined>(undefined);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; const guardBack = (event: PopStateEvent) => { if (!forced.current) return; event.stopImmediatePropagation(); history.pushState({ route: "profile", forceUpdateGuard: true }, "", appUrl("/profile")); }; window.addEventListener("popstate", guardBack, true); return () => { mounted.current = false; window.clearTimeout(toastTimer.current); window.removeEventListener("popstate", guardBack, true); }; }, []);
+  const check = async () => {
+    if (locked.current || version) return; locked.current = true; setChecking(true);
+    try { const result = await checkAppVersion(sequence.current); if (!mounted.current) return; sequence.current++;
+      if (result.latestVersion === result.currentVersion) { setToast("当前已是最新版本"); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(""), 2400); }
+      else { setToast(""); forced.current = result.forceUpdate; if (result.forceUpdate) history.pushState({ ...history.state, forceUpdateGuard: true }, "", window.location.href); setVersion(result); }
+    } catch { if (mounted.current) { setToast("检查失败，请稍后重试"); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(""), 2400); } }
+    finally { locked.current = false; if (mounted.current) setChecking(false); }
+  };
+  const update = () => { if (!version) return; const path = version.updatePath; forced.current = false; setVersion(null); history.replaceState({ ...history.state, forceUpdateGuard: false }, ""); onUpdate(path); };
+  return { checking, check, feedback: <><VersionUpdateDialog version={version} onCancel={() => { if (!forced.current) setVersion(null); }} onUpdate={update} />{toast && <div className="invite-toast version-check-toast" role="status">{toast}</div>}</> };
+}
+
+function ProfilePageV3({ onCheckUpdate, checkingUpdate, unreadCount, isLoggedIn, onNavigate, onLogin, onLogout }: { onCheckUpdate: () => void; checkingUpdate: boolean; unreadCount: number; isLoggedIn: boolean; onNavigate: (route: Route) => void; onLogin: () => void; onLogout: () => void }) {
   const [wheelAssets, setWheelAssets] = useState<WheelAssets | null>(null);
   useEffect(() => { let active = true; const refresh = () => { void wheelApi.assets().then((assets) => { if (active) setWheelAssets(assets); }).catch(() => {}); }; refresh(); window.addEventListener('wheel-assets', refresh); return () => { active = false; window.removeEventListener('wheel-assets', refresh); }; }, []);
-  const groups: Array<Array<{ id: Route; label: string; tone: string }>> = [
+  const groups: Array<Array<{ id: Route | "check-update"; label: string; tone: string }>> = [
     [{ id: "diamond-history", label: "账变记录", tone: "more-1" }],
     [{ id: "tasks", label: "任务中心", tone: "more-0" }, { id: "check-in", label: "每日签到", tone: "more-2" }, { id: "reward-history", label: "领取记录", tone: "more-1" }],
     [{ id: "invite", label: "好友邀请", tone: "more-0" }],
     [{ id: "messages", label: "站内信", tone: "more-1" }],
     [{ id: "watch-history", label: "观看历史", tone: "more-2" }],
+    [{ id: "check-update", label: "检查更新", tone: "more-1" }],
     [{ id: "about", label: "关于我们", tone: "more-0" }],
   ];
   return <main className="profile-page screen-content">
@@ -548,7 +582,7 @@ function ProfilePageV3({ unreadCount, isLoggedIn, onNavigate, onLogin, onLogout 
     </section>
     <section className="asset-card"><div className="asset-item"><div><span className="asset-diamond">◆</span><small>钻石</small></div><b>{isLoggedIn ? formatNumber(wheelAssets?.diamonds ?? userData.assets.diamonds) : "0"}</b><button onClick={() => onNavigate("recharge")}>充值</button></div><div className="asset-divider" /><div className="asset-item"><div><span className="asset-coin">●</span><small>金币</small></div><b>{isLoggedIn ? formatNumber(wheelAssets?.coins ?? userData.assets.coins) : "0"}</b><button onClick={() => onNavigate("tasks")}>赚金币</button></div></section>
     <InviteAdvertisement onClick={() => onNavigate("invite")} />
-    <section className="profile-feature-groups">{groups.map((group, groupIndex) => <div className="feature-group" key={groupIndex}>{group.map((feature) => <button className="feature-row" key={feature.id} onClick={() => onNavigate(feature.id)}><span className={`more-icon ${feature.tone}`}>{feature.id === "about" ? <InfoCircledIcon /> : <ClockIcon />}</span><b>{feature.label}</b><ChevronRightIcon /></button>)}</div>)}</section>
+    <section className="profile-feature-groups">{groups.map((group, groupIndex) => <div className="feature-group" key={groupIndex}>{group.map((feature) => <button className="feature-row" key={feature.id} disabled={feature.id === "check-update" && checkingUpdate} onClick={() => feature.id === "check-update" ? onCheckUpdate() : onNavigate(feature.id)}><span className={`more-icon ${feature.tone}`}>{feature.id === "about" ? <InfoCircledIcon /> : <ClockIcon />}</span><b>{feature.id === "check-update" && checkingUpdate ? "检查中…" : feature.label}</b><ChevronRightIcon /></button>)}</div>)}</section>
     {isLoggedIn && <button className="profile-logout" onClick={onLogout}>退出登录</button>}
   </main>;
 }
