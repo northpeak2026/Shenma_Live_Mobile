@@ -237,3 +237,6 @@
 .download-tutorial-photo img{display:block;width:260px;max-width:100%;height:auto;object-fit:contain}
 .download-feature-shot{overflow:hidden;border-radius:14px;box-shadow:0 10px 24px #43719921;background:#fff}
 .download-feature-shot img{display:block;width:100%;height:auto;aspect-ratio:402/720;object-fit:contain}
+.preview-page .event-card{grid-template-columns:minmax(0,65fr) minmax(0,35fr)}
+.preview-page .anchor-panel-head{flex-wrap:wrap;gap:5px}
+.preview-page .anchor-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
