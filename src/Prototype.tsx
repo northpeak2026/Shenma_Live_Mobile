@@ -468,26 +468,25 @@ function DownloadTutorialVisual({ visual }: { visual: string }) {
 }
 
 function DownloadLandingPage() {
-  const [platform, setPlatform] = useState<DownloadPlatform>("ios");
-  const [toast, setToast] = useState("");
-  useEffect(() => { if (!toast) return; const timeout = window.setTimeout(() => setToast(""), 2600); return () => window.clearTimeout(timeout); }, [toast]);
+  const [devicePlatform] = useState<DownloadPlatform>(() => /Android/i.test(navigator.userAgent) ? "android" : "ios");
+  const [platform, setPlatform] = useState<DownloadPlatform>(devicePlatform);
   const download = () => {
-    if (platform === "android") { setToast("正在准备 Android 安装包"); return; }
+    if (devicePlatform === "android") return;
+    setPlatform("ios");
     document.getElementById("download-tutorial-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setToast("请用 Chrome 打开网页版，按教程添加到主屏幕");
   };
   return <div className="download-shell">
     <MobileScroll className="download-scroll"><main className="download-page screen-content" style={{ "--download-sports-image": `url("${assetUrl("team-header-sport-texture.png")}")` } as CSSProperties}>
       <section className="download-hero" aria-labelledby="download-hero-title">
         <div className="download-brand"><img src={assetUrl("reference-icons/app-logo.png")} alt="神马直播 Logo" /><div><strong>神马直播</strong><span>SPORTS · LIVE · TOGETHER</span></div></div>
         <div className="download-hero-copy"><span>每一刻，都在现场</span><h1 id="download-hero-title">看直播 <em>上神马</em></h1><p>网红女神直播&nbsp;&nbsp; 行业专家赛前预测<br />体育视听盛宴&nbsp;&nbsp; 万千佳人相伴</p></div>
-        <div className="download-actions"><button className="download-primary-button" onClick={download}><span aria-hidden="true">↓</span><b>立即下载</b><ChevronRightIcon /></button></div>
+        <div className="download-actions"><button className="download-primary-button" onClick={download}><b>{devicePlatform === "ios" ? "安装教程" : "立即下载"}</b></button></div>
         <div className="download-hero-bottom"><span>赛事直播</span><i /><span>实时互动</span><i /><span>精彩不断</span></div>
       </section>
-      <section className="download-features" aria-labelledby="download-features-title"><div className="download-section-heading"><span>EXPLORE THE APP</span><h2 id="download-features-title">精彩功能</h2><p>把热爱装进口袋，精彩随时开播</p></div><Carousel className="download-screen-carousel" contentClassName="download-screen-track" ariaLabel="精彩功能页面截图">{downloadScreens.map((screen, index) => <article className="download-screen-card" key={screen.title}><div className="download-feature-shot"><img src={assetUrl(`download/${screen.file}`)} alt={`神马直播${screen.title}页面截图`} draggable="false" /></div><div className="download-screen-caption"><span>0{index + 1} / 04</span><strong>{screen.title}</strong><p>{screen.description}</p></div></article>)}</Carousel><p className="download-swipe-hint">← 左右滑动，探索更多精彩 →</p></section>
-      <section className="download-tutorial" aria-labelledby="download-tutorial-title"><div className="download-section-heading"><span>GET STARTED</span><h2 id="download-tutorial-title">安装教程</h2><p>跟随步骤，轻松开启神马直播</p></div><div className="download-tutorial-panel"><div className="download-tutorial-tabs" role="tablist" aria-label="选择手机系统"><button role="tab" aria-selected={platform === "ios"} className={platform === "ios" ? "active" : ""} onClick={() => setPlatform("ios")}>iOS</button><button role="tab" aria-selected={platform === "android"} className={platform === "android" ? "active" : ""} onClick={() => setPlatform("android")}>Android</button></div><div className="download-step-list" role="tabpanel">{downloadTutorials[platform].map((step, index) => <article className="download-step" key={`${platform}-${step.title}`}><div className="download-step-copy"><span>STEP {String(index + 1).padStart(2, "0")}</span><h3>{step.title}</h3><p>{step.description}</p></div>{step.image ? <a className="download-tutorial-photo" href={assetUrl(`download/${step.image}`)} target="_blank" rel="noopener noreferrer" aria-label={`${step.title}，查看操作截图大图`}><img src={assetUrl(`download/${step.image}`)} alt={`iPhone Chrome 实际操作截图：${step.title}`} width={step.imageWidth} height={step.imageHeight} loading="lazy" draggable={false} /></a> : <DownloadTutorialVisual visual={step.visual} />}</article>)}</div>{platform === "android" && <p className="download-tutorial-note">不同 Android 品牌的系统提示可能不同，本教程展示通用 APK 安装流程。</p>}{platform === "ios" && <p className="download-tutorial-note">不同 iOS / Chrome 版本的菜单位置可能略有不同。若找不到「添加到主屏幕」，请更新 Chrome 后重试。</p>}</div></section>
+      <section className="download-features" aria-labelledby="download-features-title"><div className="download-section-heading"><h2 id="download-features-title">精彩功能</h2></div><Carousel className="download-screen-carousel" contentClassName="download-screen-track" ariaLabel="精彩功能页面截图">{downloadScreens.map((screen, index) => <article className="download-screen-card" key={screen.title}><div className="download-feature-shot"><img src={assetUrl(`download/${screen.file}`)} alt={`神马直播${screen.title}页面截图`} draggable="false" /></div><div className="download-screen-caption"><span>0{index + 1} / 04</span><strong>{screen.title}</strong><p>{screen.description}</p></div></article>)}</Carousel></section>
+      <section className="download-tutorial" aria-labelledby="download-tutorial-title"><div className="download-section-heading"><h2 id="download-tutorial-title">安装教程</h2></div><div className="download-tutorial-panel"><div className="download-tutorial-tabs" role="tablist" aria-label="选择手机系统"><button role="tab" aria-selected={platform === "ios"} className={platform === "ios" ? "active" : ""} onClick={() => setPlatform("ios")}>iOS</button><button role="tab" aria-selected={platform === "android"} className={platform === "android" ? "active" : ""} onClick={() => setPlatform("android")}>Android</button></div><div className="download-step-list" role="tabpanel">{downloadTutorials[platform].map((step) => <article className="download-step" key={`${platform}-${step.title}`}><div className="download-step-copy"><h3>{step.title}</h3><p>{step.description}</p></div>{step.image ? <a className="download-tutorial-photo" href={assetUrl(`download/${step.image}`)} target="_blank" rel="noopener noreferrer" aria-label={`${step.title}，查看操作截图大图`}><img src={assetUrl(`download/${step.image}`)} alt={`iPhone Chrome 实际操作截图：${step.title}`} width={step.imageWidth} height={step.imageHeight} loading="lazy" draggable={false} /></a> : <DownloadTutorialVisual visual={step.visual} />}</article>)}</div>{platform === "android" && <p className="download-tutorial-note">不同 Android 品牌的系统提示可能不同，本教程展示通用 APK 安装流程。</p>}</div></section>
       <footer className="download-footer"><img src={assetUrl("reference-icons/app-logo.png")} alt="" /><strong>神马直播</strong><span>热爱不停，精彩不止</span></footer>
-    </main></MobileScroll>{toast && <div className="download-toast" role="status">{toast}</div>}
+    </main></MobileScroll>
   </div>;
 }
 
