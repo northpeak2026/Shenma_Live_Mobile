@@ -80,9 +80,10 @@ const downloadTutorials: Record<DownloadPlatform, Array<{ title: string; descrip
     { title: "步骤 5", description: "点击「下一步」，完成安装后，即可在手机桌面看到 App。", visual: "webclip", image: "ios-webclip-step-5.png", imageWidth: 444, imageHeight: 970 },
   ],
   android: [
-    { title: "下载并确认", description: "点击网页里的下载按钮，再点击弹窗里的「确定」按钮。", visual: "android-install", image: "android-install-step-1.png", imageWidth: 676, imageHeight: 1384 },
-    { title: "继续安装", description: "点击「继续安装」。", visual: "android-install", image: "android-install-step-2.png", imageWidth: 810, imageHeight: 1652 },
-    { title: "打开 App", description: "完成安装后，即可直接打开 App。", visual: "android-install", image: "android-install-step-3.png", imageWidth: 808, imageHeight: 1650 },
+    { title: "点击立即下载", description: "点击下载页里的「立即下载」按钮。", visual: "android-install", image: "android-install-step-1.png", imageWidth: 750, imageHeight: 1654 },
+    { title: "确认下载", description: "点击弹窗里的「仍然下载」（这一步是手机系统误报导致）。", visual: "android-install", image: "android-install-step-2.png", imageWidth: 740, imageHeight: 1654 },
+    { title: "继续安装", description: "点击「继续安装」（我们不会收集你的个人信息）。", visual: "android-install", image: "android-install-step-3.png", imageWidth: 750, imageHeight: 1646 },
+    { title: "完成安装", description: "点击「继续安装」后，即可体验 App。", visual: "android-install", image: "android-install-step-4.png", imageWidth: 742, imageHeight: 1658 },
   ],
 };
 type Sport = "football" | "basketball";
