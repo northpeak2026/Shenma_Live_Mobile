@@ -17,7 +17,27 @@ type Route = "message-detail" | "user-profile" | "tips-ranking" | "tips-expert" 
 type LoginMode = "code" | "password";
 const pagesProjectBase = "/Shenma_Live_Mobile";
 const appInfo = { name: "神马直播", version: "1.0.0" };
-function assetUrl(file: string) { return `${import.meta.env.BASE_URL}assets/${file}`; }
+// Content versions invalidate cached tutorial images, including their full-size links.
+const tutorialImageVersions: Record<string, string> = {
+  "android-install-step-1.png": "d62fc9960180",
+  "android-install-step-2.png": "9bdae887b112",
+  "android-install-step-3.png": "c24e3ab34b8c",
+  "android-install-step-4.png": "429e85590358",
+  "ios-chrome-step-1.png": "2bf57cbbad56",
+  "ios-chrome-step-2.png": "393f8ccdaa9d",
+  "ios-chrome-step-3.png": "cadb4dcc18e0",
+  "ios-chrome-step-4.png": "3e98311648a0",
+  "ios-chrome-step-5.png": "446d0e05efad",
+  "ios-webclip-step-1.png": "a83f79582a6b",
+  "ios-webclip-step-2.png": "d4779414f2e4",
+  "ios-webclip-step-3.png": "55514113e9d6",
+  "ios-webclip-step-4.png": "661384f30443",
+  "ios-webclip-step-5.png": "4c4365a945e8",
+};
+function assetUrl(file: string) {
+  const version = file.startsWith("download/") ? tutorialImageVersions[file.slice("download/".length)] : undefined;
+  return `${import.meta.env.BASE_URL}assets/${file}${version ? `?v=${version}` : ""}`;
+}
 const categories = ["推荐", "足球", "篮球", "英雄联盟", "直播回放"];
 const banners = [
   { image: "football-hero.png", title: "决胜瞬间", sub: "一射门，只为这一刻" },
