@@ -5,3 +5,4 @@ playwright-report/
 
 # Markdown documentation is maintained locally only.
 *.md
+!docs/requirements/SMLive产品需求.md
