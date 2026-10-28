@@ -9,7 +9,28 @@
     <link rel="apple-touch-icon" href="%BASE_URL%assets/reference-icons/app-logo.png?v=20261023" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <style>
+      html, body { margin: 0; background: #0b1120; }
+      #root[hidden], #access-gate[hidden] { display: none !important; }
+      #access-gate { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: radial-gradient(ellipse at top, #192a48, #0b1120 70%); color: #eef3ff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      #access-gate form { width: min(100%, 340px); padding: 32px 24px; box-sizing: border-box; border: 1px solid #33415b; border-radius: 20px; background: #131e30; box-shadow: 0 24px 70px #0005; }
+      #access-gate label { display: block; margin-bottom: 24px; font-size: 22px; font-weight: 600; }
+      #access-gate input, #access-gate button { width: 100%; min-height: 48px; box-sizing: border-box; border-radius: 10px; font: inherit; }
+      #access-gate input { border: 1px solid #465574; padding: 12px 14px; background: #0b1424; color: #fff; }
+      #access-gate input:focus-visible, #access-gate button:focus-visible { outline: 2px solid #9bbdff; outline-offset: 3px; }
+      #access-gate button { border: 0; background: #5484ed; color: white; font-weight: 600; cursor: pointer; }
+      #access-error { min-height: 20px; margin: 12px 0; color: #ffadb5; font-size: 14px; }
+    </style>
+    <div id="access-gate">
+      <form id="access-form">
+        <label for="access-password">请输入访问密码</label>
+        <input id="access-password" type="password" inputmode="numeric" autocomplete="off" required aria-describedby="access-error" />
+        <p id="access-error" role="alert"></p>
+        <button type="submit">确认</button>
+        <noscript><p>请启用 JavaScript 后重新验证。</p></noscript>
+      </form>
+    </div>
+    <div id="root" hidden inert></div>
+    <script type="module" src="/src/access-gate.ts"></script>
   </body>
 </html>
