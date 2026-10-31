@@ -5,10 +5,10 @@ import { updatePredictionAssets, wheelApi, type WheelAssets } from "./luckyWheel
 
 type Choice = { label: string; odds: number; people: number; total: number };
 type Prediction = { id: string; title: string; period: number; unit: "coins" | "diamonds"; minimum: number; status: "进行中" | "已开奖" | "无效竞猜"; pool: number; options: [Choice, Choice]; answer?: number };
-type Bet = { id: string; roomId: string; prediction: Prediction; choice: number; amount: number; due: number; win: boolean; settled: boolean; shown: boolean };
+type Bet = { id: string; roomId: string; prediction: Prediction; choice: number; amount: number; due: number; win: boolean; settled: boolean; shown: boolean; createdAt?: number; hostName?: string };
 const presets = [10, 50, 100, 500];
 const key = "shenma-prediction-bets";
-const readBets = (): Bet[] => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
+export const readPredictionBets = (): Bet[] => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } };
 const label = (unit: Prediction["unit"]) => unit === "coins" ? "金币" : "钻石";
 const seed = (roomId: string): Prediction[] => [
   { id: roomId+"-1", title: "这场比赛哪边会赢？", period: 12345, unit: "coins", minimum: 10, status: "进行中", pool: 1000, options: [{ label:"主队",odds:1.5,people:3,total:300 },{ label:"客队",odds:2,people:5,total:400 }] },
@@ -16,9 +16,9 @@ const seed = (roomId: string): Prediction[] => [
   { id: roomId+"-3", title: "上半场是否有进球？", period: 12344, unit: "coins", minimum: 10, status: "已开奖", pool: 1500, answer: 0, options: [{ label:"有",odds:1.5,people:8,total:600 },{ label:"没有",odds:3,people:5,total:300 }] },
   { id: roomId+"-4", title: "本场是否出现点球？", period: 12343, unit: "diamonds", minimum: 10, status: "无效竞猜", pool: 300, options: [{ label:"是",odds:2,people:2,total:100 },{ label:"否",odds:1.5,people:3,total:200 }] },
 ];
-export function LivePrediction({ roomId, active, replay }: { roomId: string; active: boolean; replay: boolean }) {
+export function LivePrediction({ roomId, active, replay, hostName, onOpenHistory }: { roomId: string; active: boolean; replay: boolean; hostName: string; onOpenHistory: () => void }) {
   const keyboard = useKeyboard();
-  const [bets, setBets] = useState<Bet[]>(readBets);
+  const [bets, setBets] = useState<Bet[]>(readPredictionBets);
   const [selected, setSelected] = useState<{ prediction: Prediction; choice: number } | null>(null);
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState(false);
@@ -48,20 +48,22 @@ export function LivePrediction({ roomId, active, replay }: { roomId: string; act
     if (!selected || busy) return;
     const value = Number(amount), prediction = selected.prediction;
     if (!amount.trim()) { setAmountError(true); setAmountErrorAttempt(value => value + 1); return; }
-    const existing = readBets().find(b => b.roomId === roomId && b.prediction.id === prediction.id);
+    const existing = readPredictionBets().find(b => b.roomId === roomId && b.prediction.id === prediction.id);
     if (existing && existing.choice !== selected.choice) { setToast("该竞猜只能对已选选项加注"); return; }
     if (!Number.isSafeInteger(value) || value < prediction.minimum) { setToast(`最低下注 ${prediction.minimum}${label(prediction.unit)}`); return; }
     if (localStorage.getItem("shenma-login-state") === "signed-out") { setToast("请先登录"); return; }
-    const id = `prediction-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const createdAt = Date.now();
+    const id = `prediction-${createdAt}-${Math.random().toString(36).slice(2)}`;
     setBusy(true);
     try {
       await updatePredictionAssets(id+"-stake", prediction.unit, -value);
-      setBets(current => [...current, { id, roomId, prediction, choice:selected.choice, amount:value, due:Date.now()+10000+Math.floor(Math.random()*20001), win:Math.random()<0.5, settled:false, shown:false }]);
+      setBets(current => [...current, { id, roomId, prediction, hostName, createdAt, choice:selected.choice, amount:value, due:createdAt+10000+Math.floor(Math.random()*20001), win:Math.random()<0.5, settled:false, shown:false }]);
       keyboard.hide(); setSelected(null); setAmount(""); setToast("下注成功");
     } catch (error) { setToast(error instanceof Error ? error.message : "下注失败，请重试"); }
     finally { setBusy(false); }
   };
   return <section className="prediction-shell" hidden={!active}>
+    <div className="prediction-history-entry"><button onClick={onOpenHistory}>竞猜历史 <span aria-hidden="true">›</span></button></div>
     <MobileScroll className="prediction-scroll"><div className="prediction-list">{seed(roomId).map(item => {
       const own = bets.filter(b => b.roomId === roomId && b.prediction.id === item.id);
       const chosen = own[0]?.choice;
