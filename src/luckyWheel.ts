@@ -101,6 +101,18 @@ export type AssetEntry = { id: string; asset: AssetKind; type?: "tips-purchase";
 function appendAssetEntry(store: Store, id: string, asset: AssetKind, source: string, amount: number) {
   store.journal ??= []; store.journal.unshift({ id, asset, source, amount, balance: asset === "experience" ? 2500 + store.assets.experience : store.assets[asset], createdAt: new Date().toISOString() });
 }
+export async function updatePredictionAssets(id: string, asset: "coins" | "diamonds", amount: number) {
+  if (!wheelMock) throw new Error("暂不支持竞猜");
+  const commit = () => {
+    const store = read();
+    if (store.grants.includes(id)) return;
+    if (store.assets[asset] + amount < 0) throw new Error("余额不足");
+    store.assets[asset] += amount;
+    appendAssetEntry(store, id, asset, amount < 0 ? "竞猜下注" : "竞猜派奖", amount);
+    store.grants.push(id); write(store);
+  };
+  if (navigator.locks) await navigator.locks.request(storageKey, commit); else commit();
+}
 const seededHistoryAnchor = Date.now() - 60000;
 function seededAssetEntries(asset: AssetKind, balance: number): AssetEntry[] {
   const sources = asset === "experience" ? ["完成任务", "每日签到", "幸运转盘奖励"] : ["完成任务", "邀请好友", "幸运转盘奖励", "每日签到", "直播间送礼", "幸运转盘消耗", "购买有料"];
